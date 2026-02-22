@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanceTracker - Scrollable</title>
+    <title>FinanceTracker - Orange & Gray</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; padding-bottom: 40px; }
-        .card { background: white; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; padding-bottom: 40px; color: #334155; }
+        .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
         .tab-content { display: none; }
         .active-tab { display: block; }
-        .btn-tab.active { background-color: #2563eb; color: white; }
-        .btn-ghost { opacity: 0.3; transition: opacity 0.3s; font-size: 10px; }
-        .btn-ghost:hover { opacity: 1; }
         
-        /* Box a scorrimento per le ultime transazioni */
+        /* Tab attive in Arancione */
+        .btn-tab.active { background-color: #f97316; color: white; border-color: #f97316; }
+        
         .scroll-container {
-            max-height: 280px; /* Altezza ottimizzata per circa 5 transazioni */
+            max-height: 320px;
             overflow-y: auto;
             padding-right: 4px;
         }
-        /* Personalizzazione barra di scorrimento per estetica */
         .scroll-container::-webkit-scrollbar { width: 4px; }
         .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        input:focus, select:focus { border: 2px solid #f97316 !important; outline: none; }
     </style>
 </head>
 <body class="p-4 flex justify-center">
@@ -31,67 +31,71 @@
     <div class="w-full max-w-md space-y-4">
         
         <header class="space-y-3">
-            <div class="flex bg-white p-1 rounded-2xl shadow-sm">
-                <button onclick="switchTab('home')" id="tab-btn-home" class="btn-tab active flex-1 py-2 rounded-xl font-bold text-sm transition">🏠 Home</button>
+            <div class="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-sm">
+                <button onclick="switchTab('home')" id="tab-btn-home" class="btn-tab active flex-1 py-2 rounded-xl font-bold text-sm transition text-gray-500">🏠 Home</button>
                 <button onclick="switchTab('stats')" id="tab-btn-stats" class="btn-tab flex-1 py-2 rounded-xl font-bold text-sm text-gray-500 transition">📊 Stats</button>
                 <button onclick="switchTab('settings')" id="tab-btn-settings" class="btn-tab flex-1 py-2 rounded-xl font-bold text-sm text-gray-500 transition">⚙️ Cat.</button>
             </div>
 
             <div class="card p-3 flex items-center justify-between">
-                <button onclick="navigate(-1)" class="p-2 text-blue-600 font-bold">❮</button>
+                <button onclick="navigate(-1)" class="p-2 text-gray-600 font-bold">❮</button>
                 <div class="text-center">
                     <h2 id="current-period-label" class="text-sm font-black uppercase tracking-tighter text-gray-800"></h2>
                     <div class="flex gap-2 justify-center mt-1 text-[10px] font-bold">
-                        <button onclick="changeView('mensile')" id="v-m" class="text-blue-600">MENSILE</button>
+                        <button onclick="changeView('mensile')" id="v-m" class="text-gray-800">MENSILE</button>
                         <span class="text-gray-300">|</span>
                         <button onclick="changeView('annuale')" id="v-a" class="text-gray-400">ANNUALE</button>
                     </div>
                 </div>
-                <button onclick="navigate(1)" class="p-2 text-blue-600 font-bold">❯</button>
+                <button onclick="navigate(1)" class="p-2 text-gray-600 font-bold">❯</button>
             </div>
         </header>
 
         <main id="tab-home" class="tab-content active-tab space-y-4">
             <div class="grid grid-cols-2 gap-3">
-                <div class="card p-3 bg-green-50 border-b-4 border-green-500 text-center">
-                    <p class="text-[9px] text-green-700 font-bold uppercase">Entrate</p>
+                <div class="card p-3 bg-white border-l-4 border-green-500">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase">Entrate</p>
                     <h2 id="tot-entrate" class="text-base font-black text-green-600">€ 0.00</h2>
                 </div>
-                <div class="card p-3 bg-red-50 border-b-4 border-red-500 text-center">
-                    <p class="text-[9px] text-red-700 font-bold uppercase">Uscite</p>
+                <div class="card p-3 bg-white border-l-4 border-red-500">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase">Uscite</p>
                     <h2 id="tot-uscite" class="text-base font-black text-red-600">€ 0.00</h2>
                 </div>
             </div>
 
-            <div class="card p-4 bg-blue-600 text-white text-center shadow-lg shadow-blue-100">
-                <p class="text-xs font-bold uppercase opacity-80">Risparmi del Periodo</p>
+            <div class="card p-4 bg-orange-500 text-white text-center shadow-lg shadow-orange-100 border-none">
+                <p class="text-xs font-bold uppercase opacity-90">Risparmi del Periodo</p>
                 <h2 id="tot-risparmi" class="text-2xl font-black">€ 0.00</h2>
             </div>
 
             <div class="card p-5 space-y-3">
-                <h3 class="font-bold text-gray-700 text-xs uppercase">Aggiungi Movimento</h3>
+                <div class="flex justify-between items-center">
+                    <h3 id="form-title" class="font-bold text-gray-700 text-xs uppercase">Aggiungi Movimento</h3>
+                    <button id="cancel-edit" onclick="resetForm()" class="hidden text-[10px] bg-gray-200 px-2 py-1 rounded text-gray-600 font-bold">ANNULLA</button>
+                </div>
+                <input type="hidden" id="edit-id">
                 <div class="flex gap-2">
-                    <select id="tipo" onchange="updateCategorySelect()" class="flex-1 p-3 bg-gray-100 border-none rounded-xl text-sm outline-none">
+                    <select id="tipo" onchange="updateCategorySelect()" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
                         <option value="uscita">Spesa (-)</option>
                         <option value="entrata">Entrata (+)</option>
                     </select>
-                    <input type="number" id="importo" placeholder="0.00" class="flex-1 p-3 bg-gray-100 border-none rounded-xl text-sm font-bold outline-none">
+                    <input type="number" id="importo" placeholder="0.00" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none">
                 </div>
-                <select id="categoria-select" class="w-full p-3 bg-gray-100 border-none rounded-xl text-sm outline-none"></select>
-                <input type="date" id="data-input" class="w-full p-3 bg-gray-100 border-none rounded-xl text-sm outline-none">
-                <button onclick="addTransaction()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Registra</button>
+                <select id="categoria-select" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none"></select>
+                <input type="text" id="descrizione" placeholder="Descrizione (opzionale)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
+                <input type="date" id="data-input" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
+                <button id="btn-save" onclick="saveTransaction()" class="w-full bg-slate-700 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">Registra</button>
             </div>
 
             <div class="space-y-2">
                 <h3 class="text-[10px] font-bold text-gray-400 uppercase ml-2">Movimenti Recenti</h3>
-                <div id="lista-transazioni" class="scroll-container space-y-2">
-                    </div>
+                <div id="lista-transazioni" class="scroll-container space-y-2"></div>
             </div>
         </main>
 
         <main id="tab-stats" class="tab-content space-y-4">
             <div class="card p-5">
-                <h3 class="text-center font-bold text-gray-700 mb-4 uppercase text-xs">Distribuzione Spese (%)</h3>
+                <h3 class="text-center font-bold text-gray-600 mb-4 uppercase text-xs">Distribuzione Spese (%)</h3>
                 <canvas id="expenseChart" height="300"></canvas>
             </div>
             <div id="category-breakdown" class="card p-5 space-y-3"></div>
@@ -99,27 +103,26 @@
 
         <main id="tab-settings" class="tab-content space-y-4">
             <div class="card p-5">
-                <h3 class="font-bold text-gray-700 text-sm mb-3">GESTISCI CATEGORIE</h3>
+                <h3 class="font-bold text-gray-600 text-sm mb-3 uppercase">Gestisci Categorie</h3>
                 <div class="flex gap-2 mb-4">
-                    <input type="text" id="nuova-cat-nome" placeholder="Nome..." class="flex-1 p-2 bg-gray-100 rounded-lg text-sm">
-                    <select id="nuova-cat-tipo" class="p-2 bg-gray-100 rounded-lg text-sm">
+                    <input type="text" id="nuova-cat-nome" placeholder="Nome..." class="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+                    <select id="nuova-cat-tipo" class="p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
                         <option value="uscita">Uscita</option>
                         <option value="entrata">Entrata</option>
                     </select>
-                    <button onclick="addCustomCategory()" class="bg-blue-600 text-white px-4 rounded-lg font-bold">+</button>
+                    <button onclick="addCustomCategory()" class="bg-slate-700 text-white px-4 rounded-lg font-bold">+</button>
                 </div>
                 <div id="categories-manage-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
             </div>
         </main>
 
         <footer class="flex justify-center gap-4 py-4">
-            <button onclick="exportData()" class="btn-ghost text-gray-400 font-medium uppercase tracking-widest hover:text-blue-500">Esporta</button>
-            <label class="btn-ghost text-gray-400 font-medium uppercase tracking-widest cursor-pointer hover:text-blue-500">
+            <button onclick="exportData()" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-slate-600">Esporta</button>
+            <label class="text-[10px] text-gray-400 font-bold uppercase tracking-widest cursor-pointer hover:text-slate-600">
                 Importa
                 <input type="file" id="importFile" class="hidden" onchange="importData(event)">
             </label>
         </footer>
-
     </div>
 
     <script>
@@ -141,8 +144,9 @@
                 el.classList.add('text-gray-500');
             });
             document.getElementById('tab-' + tab).classList.add('active-tab');
-            document.getElementById('tab-btn-' + tab).classList.add('active');
-            document.getElementById('tab-btn-' + tab).classList.remove('text-gray-500');
+            const btn = document.getElementById('tab-btn-' + tab);
+            btn.classList.add('active');
+            btn.classList.remove('text-gray-500');
             render();
         }
 
@@ -152,56 +156,54 @@
             select.innerHTML = (categorie[tipo] || []).map(c => `<option value="${c}">${c}</option>`).join('');
         }
 
-        function addCustomCategory() {
-            const nome = document.getElementById('nuova-cat-nome').value.trim();
-            const tipo = document.getElementById('nuova-cat-tipo').value;
-            if(!nome) return;
-            if(!categorie[tipo].includes(nome)) {
-                categorie[tipo].push(nome);
-                localStorage.setItem('categorie_v5', JSON.stringify(categorie));
-            }
-            document.getElementById('nuova-cat-nome').value = '';
-            render();
-        }
-
-        function deleteCategory(tipo, index) {
-            categorie[tipo].splice(index, 1);
-            localStorage.setItem('categorie_v5', JSON.stringify(categorie));
-            render();
-        }
-
-        function navigate(dir) {
-            if (viewType === 'mensile') currentDate.setMonth(currentDate.getMonth() + dir);
-            else currentDate.setFullYear(currentDate.getFullYear() + dir);
-            render();
-        }
-
-        function changeView(v) {
-            viewType = v;
-            document.getElementById('v-m').className = v === 'mensile' ? 'text-blue-600' : 'text-gray-400';
-            document.getElementById('v-a').className = v === 'annuale' ? 'text-blue-600' : 'text-gray-400';
-            render();
-        }
-
-        function addTransaction() {
+        function saveTransaction() {
+            const id = document.getElementById('edit-id').value;
             const importo = parseFloat(document.getElementById('importo').value);
             const tipo = document.getElementById('tipo').value;
             const categoria = document.getElementById('categoria-select').value;
+            const descrizione = document.getElementById('descrizione').value.trim();
             const data = document.getElementById('data-input').value;
-            if(!importo || !data) return alert("Compila i campi!");
-            
-            transazioni.push({ id: Date.now(), importo, tipo, categoria, data });
+
+            if(!importo || !data) return alert("Inserisci importo e data");
+
+            if(id) {
+                const index = transazioni.findIndex(t => t.id == id);
+                transazioni[index] = { ...transazioni[index], importo, tipo, categoria, descrizione, data };
+            } else {
+                transazioni.push({ id: Date.now(), importo, tipo, categoria, descrizione, data });
+            }
+
             localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
-            document.getElementById('importo').value = '';
+            resetForm();
             render();
         }
 
-        function deleteTrans(id) {
-            if(confirm("Eliminare?")) {
-                transazioni = transazioni.filter(t => t.id !== id);
-                localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
-                render();
-            }
+        function editTrans(id) {
+            const t = transazioni.find(item => item.id === id);
+            document.getElementById('edit-id').value = t.id;
+            document.getElementById('tipo').value = t.tipo;
+            updateCategorySelect();
+            document.getElementById('categoria-select').value = t.categoria;
+            document.getElementById('importo').value = t.importo;
+            document.getElementById('descrizione').value = t.descrizione || '';
+            document.getElementById('data-input').value = t.data;
+            
+            document.getElementById('form-title').innerText = "Modifica Movimento";
+            document.getElementById('btn-save').innerText = "Aggiorna";
+            document.getElementById('btn-save').classList.replace('bg-slate-700', 'bg-orange-600');
+            document.getElementById('cancel-edit').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('importo').value = '';
+            document.getElementById('descrizione').value = '';
+            document.getElementById('data-input').valueAsDate = new Date();
+            document.getElementById('form-title').innerText = "Aggiungi Movimento";
+            document.getElementById('btn-save').innerText = "Registra";
+            document.getElementById('btn-save').classList.replace('bg-orange-600', 'bg-slate-700');
+            document.getElementById('cancel-edit').classList.add('hidden');
         }
 
         function render() {
@@ -214,7 +216,10 @@
             catList.innerHTML = '';
             ['uscita', 'entrata'].forEach(t => {
                 (categorie[t] || []).forEach((c, idx) => {
-                    catList.innerHTML += `<div class="flex justify-between items-center text-xs bg-gray-50 p-2 rounded border"><span>${t === 'entrata' ? '🟢' : '🔴'} ${c}</span><button onclick="deleteCategory('${t}', ${idx})" class="text-red-500 font-bold">✕</button></div>`;
+                    catList.innerHTML += `<div class="flex justify-between items-center text-xs bg-white p-2 rounded border border-gray-100 shadow-sm">
+                        <span>${t === 'entrata' ? '🟢' : '🔴'} ${c}</span>
+                        <button onclick="deleteCategory('${t}', ${idx})" class="text-gray-400 hover:text-red-500 font-bold">✕</button>
+                    </div>`;
                 });
             });
 
@@ -235,8 +240,17 @@
                     stats[t.categoria] = (stats[t.categoria] || 0) + t.importo;
                 }
                 const item = document.createElement('div');
-                item.className = "card p-3 flex justify-between items-center text-sm border-l-4 " + (t.tipo === 'entrata' ? 'border-green-400' : 'border-red-400');
-                item.innerHTML = `<div><p class="text-[10px] text-gray-400">${t.data}</p><b>${t.categoria}</b></div><div class="flex items-center gap-3"><span class="${t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600'} font-bold">€${t.importo.toFixed(2)}</span><button onclick="deleteTrans(${t.id})" class="text-gray-300">✕</button></div>`;
+                item.onclick = () => editTrans(t.id);
+                item.className = "card p-3 flex justify-between items-center text-sm cursor-pointer hover:bg-gray-50 transition border-l-4 " + (t.tipo === 'entrata' ? 'border-green-500' : 'border-red-500');
+                item.innerHTML = `
+                    <div class="overflow-hidden">
+                        <p class="text-[9px] text-gray-400 font-bold uppercase">${t.data}</p>
+                        <p class="font-bold text-gray-700">${t.categoria}</p>
+                        <p class="text-[11px] text-gray-500 truncate italic">${t.descrizione || ''}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="${t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600'} font-black">€${t.importo.toFixed(2)}</span>
+                    </div>`;
                 list.appendChild(item);
             });
 
@@ -244,51 +258,101 @@
             document.getElementById('tot-entrate').innerText = `€ ${ent.toFixed(2)}`;
             document.getElementById('tot-uscite').innerText = `€ ${usc.toFixed(2)}`;
             document.getElementById('tot-risparmi').innerText = `€ ${risparmi.toFixed(2)}`;
-            document.getElementById('tot-risparmi').className = `text-2xl font-black ${risparmi >= 0 ? 'text-white' : 'text-red-200'}`;
 
             updateChart(stats, usc);
             renderStatsDetails(stats, usc);
         }
 
+        function updateChart(stats, total) {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            if(chart) chart.destroy();
+            
+            const keys = Object.keys(stats);
+            if(keys.length === 0) return;
+
+            const values = Object.values(stats);
+            const labelsWithPerc = keys.map((k, i) => {
+                const p = ((values[i] / total) * 100).toFixed(1);
+                return `${k} (${p}%)`;
+            });
+
+            chart = new Chart(ctx, {
+                type: 'pie', // Torta completa
+                data: { 
+                    labels: labelsWithPerc, 
+                    datasets: [{ 
+                        data: values, 
+                        backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#eab308', '#06b6d4'], 
+                        borderWidth: 2, 
+                        borderColor: '#ffffff' 
+                    }] 
+                },
+                options: { 
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } 
+                    } 
+                }
+            });
+        }
+
         function renderStatsDetails(stats, total) {
             const container = document.getElementById('category-breakdown');
-            container.innerHTML = '<h3 class="text-xs font-bold text-gray-400 uppercase border-b pb-2">Analisi Categorie</h3>';
+            container.innerHTML = '<h3 class="text-xs font-bold text-gray-400 uppercase border-b border-gray-100 pb-2">Analisi Spese</h3>';
             if(total === 0) {
-                container.innerHTML += '<p class="text-center text-gray-400 text-sm">Nessuna spesa</p>';
+                container.innerHTML += '<p class="text-center text-gray-400 py-4 text-sm">Nessuna spesa</p>';
                 return;
             }
             for(let c in stats) {
                 let p = ((stats[c]/total)*100).toFixed(1);
-                container.innerHTML += `<div class="space-y-1"><div class="flex justify-between text-sm"><span>${c}</span><b>€${stats[c].toFixed(2)} (${p}%)</b></div><div class="w-full bg-gray-100 h-2 rounded-full"><div class="bg-blue-600 h-2 rounded-full" style="width:${p}%"></div></div></div>`;
+                container.innerHTML += `<div class="space-y-1">
+                    <div class="flex justify-between text-xs"><span>${c}</span><span class="font-bold">€${stats[c].toFixed(2)}</span></div>
+                    <div class="w-full bg-gray-100 h-1.5 rounded-full"><div class="bg-orange-500 h-1.5 rounded-full" style="width:${p}%"></div></div>
+                </div>`;
             }
         }
 
-        function updateChart(stats, total) {
-            const ctx = document.getElementById('expenseChart').getContext('2d');
-            if(chart) chart.destroy();
-            const keys = Object.keys(stats);
-            if(keys.length === 0) return;
-            const labelsWithPerc = keys.map(k => `${k} (${((stats[k]/total)*100).toFixed(1)}%)`);
-            chart = new Chart(ctx, {
-                type: 'pie',
-                data: { labels: labelsWithPerc, datasets: [{ data: Object.values(stats), backgroundColor: ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#06b6d4'], borderWidth: 2, borderColor: '#ffffff' }] },
-                options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } } }
-            });
+        // Altre funzioni di servizio (export, import, category manage)
+        function deleteCategory(tipo, index) {
+            if(confirm("Eliminare la categoria?")) {
+                categorie[tipo].splice(index, 1);
+                localStorage.setItem('categorie_v5', JSON.stringify(categorie));
+                render();
+            }
         }
-
+        function addCustomCategory() {
+            const nome = document.getElementById('nuova-cat-nome').value.trim();
+            const tipo = document.getElementById('nuova-cat-tipo').value;
+            if(!nome) return;
+            if(!categorie[tipo].includes(nome)) {
+                categorie[tipo].push(nome);
+                localStorage.setItem('categorie_v5', JSON.stringify(categorie));
+            }
+            document.getElementById('nuova-cat-nome').value = '';
+            render();
+        }
+        function navigate(dir) {
+            if (viewType === 'mensile') currentDate.setMonth(currentDate.getMonth() + dir);
+            else currentDate.setFullYear(currentDate.getFullYear() + dir);
+            render();
+        }
+        function changeView(v) {
+            viewType = v;
+            document.getElementById('v-m').className = v === 'mensile' ? 'text-gray-800' : 'text-gray-400';
+            document.getElementById('v-a').className = v === 'annuale' ? 'text-gray-800' : 'text-gray-400';
+            render();
+        }
         function exportData() {
             const blob = new Blob([JSON.stringify({transazioni, categorie})], {type: 'application/json'});
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `backup_finanze.json`;
+            a.download = `finance_backup.json`;
             a.click();
         }
-
         function importData(event) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const imported = JSON.parse(e.target.result);
-                if(confirm("Sovrascrivere i dati?")) {
+                if(confirm("Importare i dati?")) {
                     transazioni = imported.transazioni; categorie = imported.categorie;
                     localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
                     localStorage.setItem('categorie_v5', JSON.stringify(categorie));
