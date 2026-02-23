@@ -2,19 +2,46 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanceTracker - Cloud Sync</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FinanceTracker Pro</title>
+    
+    <meta name="theme-color" content="#f97316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Finanze">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2845/2845769.png">
+    <link rel="manifest" href="manifest.json">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
-        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; padding-bottom: 40px; color: #334155; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body { 
+            background-color: #f8fafc; 
+            font-family: 'Inter', sans-serif; 
+            padding-bottom: env(safe-area-inset-bottom); /* Ottimizzazione iPhone */
+            color: #334155;
+            overscroll-behavior: none; /* Impedisce il rimbalzo del sito */
+            user-select: none; /* Impedisce selezione testo accidentale */
+            -webkit-tap-highlight-color: transparent;
+        }
+        
         .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
         .tab-content { display: none; }
         .active-tab { display: block; }
         .btn-tab.active { background-color: #f97316; color: white; border-color: #f97316; }
+        
         .scroll-container { max-height: 320px; overflow-y: auto; padding-right: 4px; }
         .scroll-container::-webkit-scrollbar { width: 4px; }
         .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        input, select, textarea { 
+            user-select: text; /* Permette scrittura nei campi */
+            -webkit-appearance: none; 
+        }
+        
         input:focus, select:focus { border: 2px solid #f97316 !important; outline: none; }
     </style>
 </head>
@@ -45,18 +72,18 @@
 
         <main id="tab-home" class="tab-content active-tab space-y-4">
             <div class="grid grid-cols-2 gap-3">
-                <div class="card p-3 bg-white border-l-4 border-green-500">
-                    <p class="text-[9px] text-gray-500 font-bold uppercase">Entrate</p>
+                <div class="card p-3 border-l-4 border-green-500">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Entrate</p>
                     <h2 id="tot-entrate" class="text-base font-black text-green-600">€ 0.00</h2>
                 </div>
-                <div class="card p-3 bg-white border-l-4 border-red-500">
-                    <p class="text-[9px] text-gray-500 font-bold uppercase">Uscite</p>
+                <div class="card p-3 border-l-4 border-red-500">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Uscite</p>
                     <h2 id="tot-uscite" class="text-base font-black text-red-600">€ 0.00</h2>
                 </div>
             </div>
 
             <div class="card p-4 bg-orange-500 text-white text-center shadow-lg shadow-orange-100 border-none">
-                <p class="text-xs font-bold uppercase opacity-90">Risparmi del Periodo</p>
+                <p class="text-xs font-bold uppercase opacity-90 tracking-widest">Risparmi del Periodo</p>
                 <h2 id="tot-risparmi" class="text-2xl font-black">€ 0.00</h2>
             </div>
 
@@ -67,34 +94,34 @@
                 </div>
                 <input type="hidden" id="edit-id">
                 <div class="flex gap-2">
-                    <select id="tipo" onchange="updateCategorySelect()" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
+                    <select id="tipo" onchange="updateCategorySelect()" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
                         <option value="uscita">Spesa (-)</option>
                         <option value="entrata">Entrata (+)</option>
                     </select>
-                    <input type="number" id="importo" placeholder="0.00" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none">
+                    <input type="number" id="importo" inputmode="decimal" placeholder="0.00" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold">
                 </div>
-                <select id="categoria-select" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none"></select>
-                <input type="text" id="descrizione" placeholder="Descrizione (es. Pizza con amici)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
-                <input type="date" id="data-input" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
-                <button id="btn-save" onclick="saveTransaction()" class="w-full bg-slate-700 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">Registra</button>
+                <select id="categoria-select" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm"></select>
+                <input type="text" id="descrizione" placeholder="Descrizione (es. Pizza)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                <input type="date" id="data-input" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                <button id="btn-save" onclick="saveTransaction()" class="w-full bg-slate-700 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition shadow-md">Registra</button>
             </div>
 
             <div class="space-y-2">
-                <h3 class="text-[10px] font-bold text-gray-400 uppercase ml-2">Movimenti Recenti</h3>
+                <h3 class="text-[10px] font-bold text-gray-400 uppercase ml-2 tracking-widest">Movimenti Recenti</h3>
                 <div id="lista-transazioni" class="scroll-container space-y-2"></div>
             </div>
         </main>
 
         <main id="tab-stats" class="tab-content space-y-4">
             <div class="card p-5">
-                <h3 class="text-center font-bold text-gray-600 mb-4 uppercase text-xs">Distribuzione Spese (%)</h3>
+                <h3 class="text-center font-bold text-gray-600 mb-4 uppercase text-[10px] tracking-widest">Distribuzione Spese (%)</h3>
                 <canvas id="expenseChart" height="300"></canvas>
             </div>
             <div id="category-breakdown" class="card p-5 space-y-3"></div>
         </main>
 
         <main id="tab-settings" class="tab-content space-y-4">
-            <div class="card p-5 space-y-3 border-t-4 border-orange-500">
+            <div class="card p-5 space-y-3 border-t-4 border-orange-500 shadow-sm">
                 <h3 class="font-bold text-gray-700 text-[10px] uppercase tracking-wider">☁️ Sincronizzazione Cloud</h3>
                 <div class="space-y-2">
                     <input type="password" id="cloud-key" placeholder="X-Master-Key" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs">
@@ -103,11 +130,11 @@
                         <button onclick="saveToCloud()" class="bg-orange-500 text-white py-3 rounded-xl font-bold text-[10px] uppercase">Salva Online</button>
                         <button onclick="loadFromCloud()" class="bg-slate-700 text-white py-3 rounded-xl font-bold text-[10px] uppercase">Carica Online</button>
                     </div>
-                    <p id="cloud-status" class="text-[9px] text-center text-gray-400 italic">Pronto</p>
+                    <p id="cloud-status" class="text-[9px] text-center text-gray-400 italic font-medium">Pronto</p>
                 </div>
             </div>
 
-            <div class="card p-5 space-y-3">
+            <div class="card p-5 space-y-3 shadow-sm">
                 <h3 class="font-bold text-gray-700 text-[10px] uppercase tracking-wider">💾 Backup Manuale (File)</h3>
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="exportData()" class="bg-gray-100 text-gray-600 py-3 rounded-xl font-bold text-[10px] uppercase hover:bg-gray-200">Esporta JSON</button>
@@ -118,7 +145,7 @@
                 </div>
             </div>
 
-            <div class="card p-5">
+            <div class="card p-5 shadow-sm">
                 <h3 class="font-bold text-gray-700 text-[10px] mb-3 uppercase tracking-wider">📂 Gestisci Categorie</h3>
                 <div class="flex gap-2 mb-4">
                     <input type="text" id="nuova-cat-nome" placeholder="Nome..." class="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
@@ -166,12 +193,10 @@
                     body: JSON.stringify({ transazioni, categorie })
                 });
                 if (response.ok) {
-                    status.innerText = "✅ Cloud: " + new Date().toLocaleTimeString();
+                    status.innerText = "✅ Cloud Sincronizzato alle " + new Date().toLocaleTimeString();
                     localStorage.setItem('jsonbin_config', JSON.stringify({ key, binId }));
                 }
-            } catch (err) {
-                status.innerText = "❌ Errore Cloud";
-            }
+            } catch (err) { status.innerText = "❌ Errore Cloud"; }
         }
 
         async function loadFromCloud() {
@@ -187,9 +212,8 @@
                 if (confirm("Caricare i dati dal Cloud?")) {
                     transazioni = data.record.transazioni || [];
                     categorie = data.record.categorie || categorie;
-                    saveLocal();
-                    render();
-                    alert("Dati sincronizzati!");
+                    saveLocal(); render();
+                    alert("Sincronizzazione completata!");
                 }
             } catch (err) { alert("Errore download."); }
         }
@@ -236,7 +260,7 @@
             }
 
             saveLocal();
-            saveToCloud();
+            saveToCloud(); // Auto-salvataggio
             resetForm();
             render();
         }
@@ -244,16 +268,15 @@
         function render() {
             const label = document.getElementById('current-period-label');
             label.innerText = currentDate.toLocaleDateString('it-IT', viewType === 'mensile' ? {month:'long', year:'numeric'} : {year:'numeric'});
-
             updateCategorySelect();
             
             const catList = document.getElementById('categories-manage-list');
             catList.innerHTML = '';
             ['uscita', 'entrata'].forEach(t => {
                 (categorie[t] || []).forEach((c, idx) => {
-                    catList.innerHTML += `<div class="flex justify-between items-center text-xs bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    catList.innerHTML += `<div class="flex justify-between items-center text-xs bg-white p-2 rounded border border-gray-100">
                         <span>${t === 'entrata' ? '🟢' : '🔴'} ${c}</span>
-                        <button onclick="deleteCategory('${t}', ${idx})" class="text-gray-400 hover:text-red-500 font-bold">✕</button>
+                        <button onclick="deleteCategory('${t}', ${idx})" class="text-gray-400 font-bold p-1">✕</button>
                     </div>`;
                 });
             });
@@ -276,18 +299,15 @@
                 }
                 const item = document.createElement('div');
                 item.onclick = () => editTrans(t.id);
-                item.className = "card p-3 flex justify-between items-center text-sm cursor-pointer hover:bg-gray-50 transition border-l-4 " + (t.tipo === 'entrata' ? 'border-green-500' : 'border-red-500');
-                
-                // MOSTRA DESCRIZIONE SOTTO LA CATEGORIA
-                const descHTML = t.descrizione ? `<p class="text-[10px] text-gray-500 italic mt-0.5 leading-tight">${t.descrizione}</p>` : '';
-                
+                item.className = "card p-3 flex justify-between items-center text-sm cursor-pointer hover:bg-gray-50 border-l-4 " + (t.tipo === 'entrata' ? 'border-green-500' : 'border-red-500');
+                const descHTML = t.descrizione ? `<p class="text-[10px] text-gray-500 italic mt-0.5">${t.descrizione}</p>` : '';
                 item.innerHTML = `
                     <div class="flex-1 pr-4">
                         <p class="text-[9px] text-gray-400 font-bold uppercase">${t.data}</p>
                         <p class="font-bold text-gray-700">${t.categoria}</p>
                         ${descHTML}
                     </div>
-                    <span class="${t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600'} font-black whitespace-nowrap">€${t.importo.toFixed(2)}</span>
+                    <span class="${t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600'} font-black">€${t.importo.toFixed(2)}</span>
                 `;
                 list.appendChild(item);
             });
@@ -295,7 +315,6 @@
             document.getElementById('tot-entrate').innerText = `€ ${ent.toFixed(2)}`;
             document.getElementById('tot-uscite').innerText = `€ ${usc.toFixed(2)}`;
             document.getElementById('tot-risparmi').innerText = `€ ${(ent - usc).toFixed(2)}`;
-
             updateChart(stats, usc);
             renderStatsDetails(stats, usc);
         }
