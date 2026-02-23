@@ -3,55 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f97316">
-<meta name="mobile-web-app-capable" content="yes">
     <title>FinanceTracker - Orange & Gray</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        <textarea id="datiUtente" placeholder="Scrivi qualcosa da salvare..."></textarea>
-<button onclick="inviaADrive()">Salva su Google Drive</button>
-
-<script>
-async function inviaADrive() {
-    const testo = document.getElementById('datiUtente').value;
-    const urlScript = "https://script.google.com/macros/s/AKfycbwTs_GmK7fryqr_XFBn-Q9kFq6dqlw2AK1ALe_9xpXeDI6OcaaTXoIJJUivw3DUYy2cCg/exec";
-
-    const payload = {
-        contenuto: testo
-    };
-
-    try {
-        const response = await fetch(urlScript, {
-            method: 'POST',
-            mode: 'no-cors', // Importante per evitare blocchi CORS
-            cache: 'no-cache',
-            body: JSON.stringify(payload)
-        });
-        alert("Richiesta inviata! Controlla il tuo Google Drive.");
-    } catch (error) {
-        console.error("Errore:", error);
-        alert("Si è verificato un errore.");
-    }
-}
-</script>
         body { background-color: #f8fafc; font-family: 'Inter', sans-serif; padding-bottom: 40px; color: #334155; }
         .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
         .tab-content { display: none; }
         .active-tab { display: block; }
-        
-        /* Tab attive in Arancione */
         .btn-tab.active { background-color: #f97316; color: white; border-color: #f97316; }
-        
-        .scroll-container {
-            max-height: 320px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
+        .scroll-container { max-height: 320px; overflow-y: auto; padding-right: 4px; }
         .scroll-container::-webkit-scrollbar { width: 4px; }
         .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
         input:focus, select:focus { border: 2px solid #f97316 !important; outline: none; }
+        /* Animazione per il caricamento */
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .syncing { animation: pulse 1s infinite; color: #f97316 !important; }
     </style>
 </head>
 <body class="p-4 flex justify-center">
@@ -150,6 +117,7 @@ async function inviaADrive() {
                 Importa
                 <input type="file" id="importFile" class="hidden" onchange="importData(event)">
             </label>
+            <button id="sync-label" onclick="backupSuDrive()" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-orange-500">☁️ Cloud Sync</button>
         </footer>
     </div>
 
@@ -162,6 +130,46 @@ async function inviaADrive() {
         let viewType = 'mensile';
         let currentDate = new Date();
         let chart;
+
+        // --- FUNZIONE BACKUP GOOGLE DRIVE ---
+        async function backupSuDrive() {
+            const syncLabel = document.getElementById('sync-label');
+            const urlScript = "https://script.google.com/macros/s/AKfycbwTs_GmK7fryqr_XFBn-Q9kFq6dqlw2AK1ALe_9xpXeDI6OcaaTXoIJJUivw3DUYy2cCg/exec"; // <--- METTI IL TUO URL QUI
+
+            if (urlScript.includes("INCOLLA_QUI")) {
+                console.warn("URL di Google Apps Script non configurato.");
+                return;
+            }
+
+            syncLabel.classList.add('syncing');
+            syncLabel.innerText = "☁️ Sincronizzazione...";
+
+            const backupDati = {
+                contenuto: JSON.stringify({
+                    ultimoAggiornamento: new Date().toLocaleString(),
+                    transazioni: transazioni,
+                    categorie: categorie
+                }, null, 2)
+            };
+
+            try {
+                await fetch(urlScript, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    cache: 'no-cache',
+                    body: JSON.stringify(backupDati)
+                });
+                setTimeout(() => {
+                    syncLabel.classList.remove('syncing');
+                    syncLabel.innerText = "✅ Sincronizzato";
+                    setTimeout(() => syncLabel.innerText = "☁️ Cloud Sync", 3000);
+                }, 1000);
+            } catch (error) {
+                console.error("Errore backup:", error);
+                syncLabel.innerText = "❌ Errore Cloud";
+                syncLabel.classList.remove('syncing');
+            }
+        }
 
         document.getElementById('data-input').valueAsDate = new Date();
 
@@ -204,6 +212,7 @@ async function inviaADrive() {
             localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
             resetForm();
             render();
+            backupSuDrive(); // Backup automatico dopo ogni salvataggio
         }
 
         function editTrans(id) {
@@ -243,157 +252,4 @@ async function inviaADrive() {
             const catList = document.getElementById('categories-manage-list');
             catList.innerHTML = '';
             ['uscita', 'entrata'].forEach(t => {
-                (categorie[t] || []).forEach((c, idx) => {
-                    catList.innerHTML += `<div class="flex justify-between items-center text-xs bg-white p-2 rounded border border-gray-100 shadow-sm">
-                        <span>${t === 'entrata' ? '🟢' : '🔴'} ${c}</span>
-                        <button onclick="deleteCategory('${t}', ${idx})" class="text-gray-400 hover:text-red-500 font-bold">✕</button>
-                    </div>`;
-                });
-            });
-
-            const filtrati = transazioni.filter(t => {
-                const d = new Date(t.data);
-                return viewType === 'mensile' ? (d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear()) : (d.getFullYear() === currentDate.getFullYear());
-            });
-
-            let ent = 0, usc = 0;
-            const stats = {};
-            const list = document.getElementById('lista-transazioni');
-            list.innerHTML = '';
-
-            filtrati.sort((a,b) => new Date(b.data) - new Date(a.data)).forEach(t => {
-                if(t.tipo === 'entrata') ent += t.importo;
-                else {
-                    usc += t.importo;
-                    stats[t.categoria] = (stats[t.categoria] || 0) + t.importo;
-                }
-                const item = document.createElement('div');
-                item.onclick = () => editTrans(t.id);
-                item.className = "card p-3 flex justify-between items-center text-sm cursor-pointer hover:bg-gray-50 transition border-l-4 " + (t.tipo === 'entrata' ? 'border-green-500' : 'border-red-500');
-                item.innerHTML = `
-                    <div class="overflow-hidden">
-                        <p class="text-[9px] text-gray-400 font-bold uppercase">${t.data}</p>
-                        <p class="font-bold text-gray-700">${t.categoria}</p>
-                        <p class="text-[11px] text-gray-500 truncate italic">${t.descrizione || ''}</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="${t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600'} font-black">€${t.importo.toFixed(2)}</span>
-                    </div>`;
-                list.appendChild(item);
-            });
-
-            const risparmi = ent - usc;
-            document.getElementById('tot-entrate').innerText = `€ ${ent.toFixed(2)}`;
-            document.getElementById('tot-uscite').innerText = `€ ${usc.toFixed(2)}`;
-            document.getElementById('tot-risparmi').innerText = `€ ${risparmi.toFixed(2)}`;
-
-            updateChart(stats, usc);
-            renderStatsDetails(stats, usc);
-        }
-
-        function updateChart(stats, total) {
-            const ctx = document.getElementById('expenseChart').getContext('2d');
-            if(chart) chart.destroy();
-            
-            const keys = Object.keys(stats);
-            if(keys.length === 0) return;
-
-            const values = Object.values(stats);
-            const labelsWithPerc = keys.map((k, i) => {
-                const p = ((values[i] / total) * 100).toFixed(1);
-                return `${k} (${p}%)`;
-            });
-
-            chart = new Chart(ctx, {
-                type: 'pie', // Torta completa
-                data: { 
-                    labels: labelsWithPerc, 
-                    datasets: [{ 
-                        data: values, 
-                        backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#eab308', '#06b6d4'], 
-                        borderWidth: 2, 
-                        borderColor: '#ffffff' 
-                    }] 
-                },
-                options: { 
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } 
-                    } 
-                }
-            });
-        }
-
-        function renderStatsDetails(stats, total) {
-            const container = document.getElementById('category-breakdown');
-            container.innerHTML = '<h3 class="text-xs font-bold text-gray-400 uppercase border-b border-gray-100 pb-2">Analisi Spese</h3>';
-            if(total === 0) {
-                container.innerHTML += '<p class="text-center text-gray-400 py-4 text-sm">Nessuna spesa</p>';
-                return;
-            }
-            for(let c in stats) {
-                let p = ((stats[c]/total)*100).toFixed(1);
-                container.innerHTML += `<div class="space-y-1">
-                    <div class="flex justify-between text-xs"><span>${c}</span><span class="font-bold">€${stats[c].toFixed(2)}</span></div>
-                    <div class="w-full bg-gray-100 h-1.5 rounded-full"><div class="bg-orange-500 h-1.5 rounded-full" style="width:${p}%"></div></div>
-                </div>`;
-            }
-        }
-
-        // Altre funzioni di servizio (export, import, category manage)
-        function deleteCategory(tipo, index) {
-            if(confirm("Eliminare la categoria?")) {
-                categorie[tipo].splice(index, 1);
-                localStorage.setItem('categorie_v5', JSON.stringify(categorie));
-                render();
-            }
-        }
-        function addCustomCategory() {
-            const nome = document.getElementById('nuova-cat-nome').value.trim();
-            const tipo = document.getElementById('nuova-cat-tipo').value;
-            if(!nome) return;
-            if(!categorie[tipo].includes(nome)) {
-                categorie[tipo].push(nome);
-                localStorage.setItem('categorie_v5', JSON.stringify(categorie));
-            }
-            document.getElementById('nuova-cat-nome').value = '';
-            render();
-        }
-        function navigate(dir) {
-            if (viewType === 'mensile') currentDate.setMonth(currentDate.getMonth() + dir);
-            else currentDate.setFullYear(currentDate.getFullYear() + dir);
-            render();
-        }
-        function changeView(v) {
-            viewType = v;
-            document.getElementById('v-m').className = v === 'mensile' ? 'text-gray-800' : 'text-gray-400';
-            document.getElementById('v-a').className = v === 'annuale' ? 'text-gray-800' : 'text-gray-400';
-            render();
-        }
-        function exportData() {
-            const blob = new Blob([JSON.stringify({transazioni, categorie})], {type: 'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `finance_backup.json`;
-            a.click();
-        }
-        function importData(event) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const imported = JSON.parse(e.target.result);
-                if(confirm("Importare i dati?")) {
-                    transazioni = imported.transazioni; categorie = imported.categorie;
-                    localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
-                    localStorage.setItem('categorie_v5', JSON.stringify(categorie));
-                    render();
-                }
-            };
-            reader.readAsText(event.target.files[0]);
-        }
-
-        render();
-    </script>
-</body>
-</html>
-
-
-
+                (categorie[t] || []
