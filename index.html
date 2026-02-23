@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanceTracker - Orange & Gray</title>
+    <title>FinanceTracker - Cloud Sync</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -11,18 +11,10 @@
         .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
         .tab-content { display: none; }
         .active-tab { display: block; }
-        
-        /* Tab attive in Arancione */
         .btn-tab.active { background-color: #f97316; color: white; border-color: #f97316; }
-        
-        .scroll-container {
-            max-height: 320px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
+        .scroll-container { max-height: 320px; overflow-y: auto; padding-right: 4px; }
         .scroll-container::-webkit-scrollbar { width: 4px; }
         .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
         input:focus, select:focus { border: 2px solid #f97316 !important; outline: none; }
     </style>
 </head>
@@ -32,9 +24,9 @@
         
         <header class="space-y-3">
             <div class="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-sm">
-                <button onclick="switchTab('home')" id="tab-btn-home" class="btn-tab active flex-1 py-2 rounded-xl font-bold text-sm transition text-gray-500">🏠 Home</button>
-                <button onclick="switchTab('stats')" id="tab-btn-stats" class="btn-tab flex-1 py-2 rounded-xl font-bold text-sm text-gray-500 transition">📊 Stats</button>
-                <button onclick="switchTab('settings')" id="tab-btn-settings" class="btn-tab flex-1 py-2 rounded-xl font-bold text-sm text-gray-500 transition">⚙️ Cat.</button>
+                <button onclick="switchTab('home')" id="tab-btn-home" class="btn-tab active flex-[2] py-2 rounded-xl font-bold text-sm transition text-gray-500">🏠 Home</button>
+                <button onclick="switchTab('stats')" id="tab-btn-stats" class="btn-tab flex-[2] py-2 rounded-xl font-bold text-sm text-gray-500 transition">📊 Stats</button>
+                <button onclick="switchTab('settings')" id="tab-btn-settings" class="btn-tab flex-1 py-2 rounded-xl font-bold text-sm text-gray-500 transition">⚙️</button>
             </div>
 
             <div class="card p-3 flex items-center justify-between">
@@ -82,7 +74,7 @@
                     <input type="number" id="importo" placeholder="0.00" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none">
                 </div>
                 <select id="categoria-select" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none"></select>
-                <input type="text" id="descrizione" placeholder="Descrizione (opzionale)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
+                <input type="text" id="descrizione" placeholder="Descrizione (es. Pizza con amici)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
                 <input type="date" id="data-input" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
                 <button id="btn-save" onclick="saveTransaction()" class="w-full bg-slate-700 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">Registra</button>
             </div>
@@ -102,8 +94,32 @@
         </main>
 
         <main id="tab-settings" class="tab-content space-y-4">
+            <div class="card p-5 space-y-3 border-t-4 border-orange-500">
+                <h3 class="font-bold text-gray-700 text-[10px] uppercase tracking-wider">☁️ Sincronizzazione Cloud</h3>
+                <div class="space-y-2">
+                    <input type="password" id="cloud-key" placeholder="X-Master-Key" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs">
+                    <input type="text" id="cloud-id" placeholder="Bin ID" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs">
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="saveToCloud()" class="bg-orange-500 text-white py-3 rounded-xl font-bold text-[10px] uppercase">Salva Online</button>
+                        <button onclick="loadFromCloud()" class="bg-slate-700 text-white py-3 rounded-xl font-bold text-[10px] uppercase">Carica Online</button>
+                    </div>
+                    <p id="cloud-status" class="text-[9px] text-center text-gray-400 italic">Pronto</p>
+                </div>
+            </div>
+
+            <div class="card p-5 space-y-3">
+                <h3 class="font-bold text-gray-700 text-[10px] uppercase tracking-wider">💾 Backup Manuale (File)</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="exportData()" class="bg-gray-100 text-gray-600 py-3 rounded-xl font-bold text-[10px] uppercase hover:bg-gray-200">Esporta JSON</button>
+                    <label class="bg-gray-100 text-gray-600 py-3 rounded-xl font-bold text-[10px] uppercase hover:bg-gray-200 text-center cursor-pointer">
+                        Importa JSON
+                        <input type="file" id="importFile" class="hidden" onchange="importData(event)">
+                    </label>
+                </div>
+            </div>
+
             <div class="card p-5">
-                <h3 class="font-bold text-gray-600 text-sm mb-3 uppercase">Gestisci Categorie</h3>
+                <h3 class="font-bold text-gray-700 text-[10px] mb-3 uppercase tracking-wider">📂 Gestisci Categorie</h3>
                 <div class="flex gap-2 mb-4">
                     <input type="text" id="nuova-cat-nome" placeholder="Nome..." class="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
                     <select id="nuova-cat-tipo" class="p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
@@ -112,17 +128,9 @@
                     </select>
                     <button onclick="addCustomCategory()" class="bg-slate-700 text-white px-4 rounded-lg font-bold">+</button>
                 </div>
-                <div id="categories-manage-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                <div id="categories-manage-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
             </div>
         </main>
-
-        <footer class="flex justify-center gap-4 py-4">
-            <button onclick="exportData()" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-slate-600">Esporta</button>
-            <label class="text-[10px] text-gray-400 font-bold uppercase tracking-widest cursor-pointer hover:text-slate-600">
-                Importa
-                <input type="file" id="importFile" class="hidden" onchange="importData(event)">
-            </label>
-        </footer>
     </div>
 
     <script>
@@ -135,7 +143,61 @@
         let currentDate = new Date();
         let chart;
 
-        document.getElementById('data-input').valueAsDate = new Date();
+        window.addEventListener('load', () => {
+            const config = JSON.parse(localStorage.getItem('jsonbin_config'));
+            if (config) {
+                document.getElementById('cloud-key').value = config.key;
+                document.getElementById('cloud-id').value = config.binId;
+            }
+            document.getElementById('data-input').valueAsDate = new Date();
+            render();
+        });
+
+        async function saveToCloud() {
+            const key = document.getElementById('cloud-key').value.trim();
+            const binId = document.getElementById('cloud-id').value.trim();
+            const status = document.getElementById('cloud-status');
+            if (!key || !binId) return;
+            status.innerText = "Sincronizzazione Cloud...";
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': key },
+                    body: JSON.stringify({ transazioni, categorie })
+                });
+                if (response.ok) {
+                    status.innerText = "✅ Cloud: " + new Date().toLocaleTimeString();
+                    localStorage.setItem('jsonbin_config', JSON.stringify({ key, binId }));
+                }
+            } catch (err) {
+                status.innerText = "❌ Errore Cloud";
+            }
+        }
+
+        async function loadFromCloud() {
+            const key = document.getElementById('cloud-key').value.trim();
+            const binId = document.getElementById('cloud-id').value.trim();
+            if (!key || !binId) return alert("Inserisci le chiavi!");
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+                    method: 'GET',
+                    headers: { 'X-Master-Key': key }
+                });
+                const data = await response.json();
+                if (confirm("Caricare i dati dal Cloud?")) {
+                    transazioni = data.record.transazioni || [];
+                    categorie = data.record.categorie || categorie;
+                    saveLocal();
+                    render();
+                    alert("Dati sincronizzati!");
+                }
+            } catch (err) { alert("Errore download."); }
+        }
+
+        function saveLocal() {
+            localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
+            localStorage.setItem('categorie_v5', JSON.stringify(categorie));
+        }
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
@@ -173,37 +235,10 @@
                 transazioni.push({ id: Date.now(), importo, tipo, categoria, descrizione, data });
             }
 
-            localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
+            saveLocal();
+            saveToCloud();
             resetForm();
             render();
-        }
-
-        function editTrans(id) {
-            const t = transazioni.find(item => item.id === id);
-            document.getElementById('edit-id').value = t.id;
-            document.getElementById('tipo').value = t.tipo;
-            updateCategorySelect();
-            document.getElementById('categoria-select').value = t.categoria;
-            document.getElementById('importo').value = t.importo;
-            document.getElementById('descrizione').value = t.descrizione || '';
-            document.getElementById('data-input').value = t.data;
-            
-            document.getElementById('form-title').innerText = "Modifica Movimento";
-            document.getElementById('btn-save').innerText = "Aggiorna";
-            document.getElementById('btn-save').classList.replace('bg-slate-700', 'bg-orange-600');
-            document.getElementById('cancel-edit').classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function resetForm() {
-            document.getElementById('edit-id').value = '';
-            document.getElementById('importo').value = '';
-            document.getElementById('descrizione').value = '';
-            document.getElementById('data-input').valueAsDate = new Date();
-            document.getElementById('form-title').innerText = "Aggiungi Movimento";
-            document.getElementById('btn-save').innerText = "Registra";
-            document.getElementById('btn-save').classList.replace('bg-orange-600', 'bg-slate-700');
-            document.getElementById('cancel-edit').classList.add('hidden');
         }
 
         function render() {
@@ -242,105 +277,106 @@
                 const item = document.createElement('div');
                 item.onclick = () => editTrans(t.id);
                 item.className = "card p-3 flex justify-between items-center text-sm cursor-pointer hover:bg-gray-50 transition border-l-4 " + (t.tipo === 'entrata' ? 'border-green-500' : 'border-red-500');
+                
+                // MOSTRA DESCRIZIONE SOTTO LA CATEGORIA
+                const descHTML = t.descrizione ? `<p class="text-[10px] text-gray-500 italic mt-0.5 leading-tight">${t.descrizione}</p>` : '';
+                
                 item.innerHTML = `
-                    <div class="overflow-hidden">
+                    <div class="flex-1 pr-4">
                         <p class="text-[9px] text-gray-400 font-bold uppercase">${t.data}</p>
                         <p class="font-bold text-gray-700">${t.categoria}</p>
-                        <p class="text-[11px] text-gray-500 truncate italic">${t.descrizione || ''}</p>
+                        ${descHTML}
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span class="${t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600'} font-black">€${t.importo.toFixed(2)}</span>
-                    </div>`;
+                    <span class="${t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600'} font-black whitespace-nowrap">€${t.importo.toFixed(2)}</span>
+                `;
                 list.appendChild(item);
             });
 
-            const risparmi = ent - usc;
             document.getElementById('tot-entrate').innerText = `€ ${ent.toFixed(2)}`;
             document.getElementById('tot-uscite').innerText = `€ ${usc.toFixed(2)}`;
-            document.getElementById('tot-risparmi').innerText = `€ ${risparmi.toFixed(2)}`;
+            document.getElementById('tot-risparmi').innerText = `€ ${(ent - usc).toFixed(2)}`;
 
             updateChart(stats, usc);
             renderStatsDetails(stats, usc);
         }
 
-        function updateChart(stats, total) {
-            const ctx = document.getElementById('expenseChart').getContext('2d');
-            if(chart) chart.destroy();
-            
-            const keys = Object.keys(stats);
-            if(keys.length === 0) return;
-
-            const values = Object.values(stats);
-            const labelsWithPerc = keys.map((k, i) => {
-                const p = ((values[i] / total) * 100).toFixed(1);
-                return `${k} (${p}%)`;
-            });
-
-            chart = new Chart(ctx, {
-                type: 'pie', // Torta completa
-                data: { 
-                    labels: labelsWithPerc, 
-                    datasets: [{ 
-                        data: values, 
-                        backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#eab308', '#06b6d4'], 
-                        borderWidth: 2, 
-                        borderColor: '#ffffff' 
-                    }] 
-                },
-                options: { 
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } 
-                    } 
-                }
-            });
+        function editTrans(id) {
+            const t = transazioni.find(item => item.id === id);
+            document.getElementById('edit-id').value = t.id;
+            document.getElementById('tipo').value = t.tipo;
+            updateCategorySelect();
+            document.getElementById('categoria-select').value = t.categoria;
+            document.getElementById('importo').value = t.importo;
+            document.getElementById('descrizione').value = t.descrizione || '';
+            document.getElementById('data-input').value = t.data;
+            document.getElementById('form-title').innerText = "Modifica Movimento";
+            document.getElementById('btn-save').innerText = "Aggiorna";
+            document.getElementById('cancel-edit').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function renderStatsDetails(stats, total) {
-            const container = document.getElementById('category-breakdown');
-            container.innerHTML = '<h3 class="text-xs font-bold text-gray-400 uppercase border-b border-gray-100 pb-2">Analisi Spese</h3>';
-            if(total === 0) {
-                container.innerHTML += '<p class="text-center text-gray-400 py-4 text-sm">Nessuna spesa</p>';
-                return;
-            }
-            for(let c in stats) {
-                let p = ((stats[c]/total)*100).toFixed(1);
-                container.innerHTML += `<div class="space-y-1">
-                    <div class="flex justify-between text-xs"><span>${c}</span><span class="font-bold">€${stats[c].toFixed(2)}</span></div>
-                    <div class="w-full bg-gray-100 h-1.5 rounded-full"><div class="bg-orange-500 h-1.5 rounded-full" style="width:${p}%"></div></div>
-                </div>`;
-            }
+        function resetForm() {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('importo').value = '';
+            document.getElementById('descrizione').value = '';
+            document.getElementById('data-input').valueAsDate = new Date();
+            document.getElementById('form-title').innerText = "Aggiungi Movimento";
+            document.getElementById('btn-save').innerText = "Registra";
+            document.getElementById('cancel-edit').classList.add('hidden');
         }
 
-        // Altre funzioni di servizio (export, import, category manage)
         function deleteCategory(tipo, index) {
-            if(confirm("Eliminare la categoria?")) {
-                categorie[tipo].splice(index, 1);
-                localStorage.setItem('categorie_v5', JSON.stringify(categorie));
-                render();
-            }
+            if(confirm("Eliminare?")) { categorie[tipo].splice(index, 1); saveLocal(); render(); }
         }
+
         function addCustomCategory() {
             const nome = document.getElementById('nuova-cat-nome').value.trim();
             const tipo = document.getElementById('nuova-cat-tipo').value;
-            if(!nome) return;
-            if(!categorie[tipo].includes(nome)) {
-                categorie[tipo].push(nome);
-                localStorage.setItem('categorie_v5', JSON.stringify(categorie));
-            }
+            if(nome && !categorie[tipo].includes(nome)) { categorie[tipo].push(nome); saveLocal(); render(); }
             document.getElementById('nuova-cat-nome').value = '';
-            render();
         }
+
         function navigate(dir) {
             if (viewType === 'mensile') currentDate.setMonth(currentDate.getMonth() + dir);
             else currentDate.setFullYear(currentDate.getFullYear() + dir);
             render();
         }
+
         function changeView(v) {
             viewType = v;
             document.getElementById('v-m').className = v === 'mensile' ? 'text-gray-800' : 'text-gray-400';
             document.getElementById('v-a').className = v === 'annuale' ? 'text-gray-800' : 'text-gray-400';
             render();
         }
+
+        function updateChart(stats, total) {
+            const canvas = document.getElementById('expenseChart');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if(chart) chart.destroy();
+            const keys = Object.keys(stats);
+            if(keys.length === 0) return;
+            chart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: keys,
+                    datasets: [{ data: Object.values(stats), backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'], borderWidth: 2, borderColor: '#ffffff' }]
+                },
+                options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } } }
+            });
+        }
+
+        function renderStatsDetails(stats, total) {
+            const container = document.getElementById('category-breakdown');
+            if(!container) return;
+            container.innerHTML = '<h3 class="text-xs font-bold text-gray-400 uppercase border-b pb-2">Analisi Spese</h3>';
+            if(total === 0) { container.innerHTML += '<p class="text-center text-gray-400 py-4 text-sm">Nessuna spesa</p>'; return; }
+            for(let c in stats) {
+                let p = ((stats[c]/total)*100).toFixed(1);
+                container.innerHTML += `<div class="space-y-1"><div class="flex justify-between text-xs"><span>${c}</span><span class="font-bold">€${stats[c].toFixed(2)}</span></div><div class="w-full bg-gray-100 h-1 rounded-full"><div class="bg-orange-500 h-1 rounded-full" style="width:${p}%"></div></div></div>`;
+            }
+        }
+
         function exportData() {
             const blob = new Blob([JSON.stringify({transazioni, categorie})], {type: 'application/json'});
             const a = document.createElement('a');
@@ -348,21 +384,18 @@
             a.download = `finance_backup.json`;
             a.click();
         }
+
         function importData(event) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const imported = JSON.parse(e.target.result);
-                if(confirm("Importare i dati?")) {
+                if(confirm("Importare i dati dal file?")) {
                     transazioni = imported.transazioni; categorie = imported.categorie;
-                    localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
-                    localStorage.setItem('categorie_v5', JSON.stringify(categorie));
-                    render();
+                    saveLocal(); render();
                 }
             };
             reader.readAsText(event.target.files[0]);
         }
-
-        render();
     </script>
 </body>
 </html>
