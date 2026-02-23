@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanceTracker - Cloud Sync</title>
+    <title>FinanceTracker - Orange & Gray</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -11,14 +11,19 @@
         .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
         .tab-content { display: none; }
         .active-tab { display: block; }
+        
+        /* Tab attive in Arancione */
         .btn-tab.active { background-color: #f97316; color: white; border-color: #f97316; }
-        .scroll-container { max-height: 320px; overflow-y: auto; padding-right: 4px; }
+        
+        .scroll-container {
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
         .scroll-container::-webkit-scrollbar { width: 4px; }
         .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        input:focus, select:focus { border: 2px solid #f97316 !important; outline: none; }
         
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .syncing { animation: pulse 1s infinite; color: #f97316 !important; }
+        input:focus, select:focus { border: 2px solid #f97316 !important; outline: none; }
     </style>
 </head>
 <body class="p-4 flex justify-center">
@@ -111,11 +116,8 @@
             </div>
         </main>
 
-        <footer class="flex justify-center gap-4 py-4 border-t border-gray-100">
+        <footer class="flex justify-center gap-4 py-4">
             <button onclick="exportData()" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-slate-600">Esporta</button>
-            <span class="text-gray-200">|</span>
-            <button id="sync-btn" onclick="backupSuDrive()" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-orange-500">Sincronizza</button>
-            <span class="text-gray-200">|</span>
             <label class="text-[10px] text-gray-400 font-bold uppercase tracking-widest cursor-pointer hover:text-slate-600">
                 Importa
                 <input type="file" id="importFile" class="hidden" onchange="importData(event)">
@@ -124,11 +126,8 @@
     </div>
 
     <script>
-        // --- CONFIGURAZIONE ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDuu3pL4VUQY-Wp9hur9naPIgsfPt488t-LJgapROte7RThS2mDBxW0CpzhUh3-kbk/exec";
-
-        let transazioni = [];
-        let categorie = {
+        let transazioni = JSON.parse(localStorage.getItem('finanze_v5')) || [];
+        let categorie = JSON.parse(localStorage.getItem('categorie_v5')) || {
             uscita: ['🛒 Cibo', '🚗 Trasporti', '🏠 Casa', '🍕 Svago', '💊 Salute'],
             entrata: ['💰 Stipendio', '📈 Investimenti', '🎁 Regalo']
         };
@@ -136,63 +135,8 @@
         let currentDate = new Date();
         let chart;
 
-        // --- SINCRONIZZAZIONE CLOUD ---
-        async function caricaDaDrive() {
-            const btn = document.getElementById('sync-btn');
-            btn.classList.add('syncing');
-            btn.innerText = "Caricamento...";
+        document.getElementById('data-input').valueAsDate = new Date();
 
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL);
-                const data = await response.json();
-                
-                if (data && data.transazioni) {
-                    transazioni = data.transazioni;
-                    categorie = data.categorie;
-                    localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
-                    localStorage.setItem('categorie_v5', JSON.stringify(categorie));
-                    console.log("Dati caricati da Drive con successo");
-                }
-            } catch (e) {
-                console.error("Errore Cloud, uso dati locali:", e);
-                transazioni = JSON.parse(localStorage.getItem('finanze_v5')) || [];
-                categorie = JSON.parse(localStorage.getItem('categorie_v5')) || categorie;
-            } finally {
-                btn.classList.remove('syncing');
-                btn.innerText = "Sincronizzato";
-                render();
-                setTimeout(() => btn.innerText = "Sincronizza", 2000);
-            }
-        }
-
-        async function backupSuDrive() {
-            const btn = document.getElementById('sync-btn');
-            btn.classList.add('syncing');
-            btn.innerText = "Salvataggio...";
-
-            const payload = {
-                contenuto: JSON.stringify({ transazioni, categorie }, null, 2)
-            };
-
-            try {
-                await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(payload)
-                });
-                setTimeout(() => {
-                    btn.classList.remove('syncing');
-                    btn.innerText = "✅ Salvato";
-                    setTimeout(() => btn.innerText = "Sincronizza", 2000);
-                }, 800);
-            } catch (e) {
-                console.error(e);
-                btn.innerText = "Errore!";
-                btn.classList.remove('syncing');
-            }
-        }
-
-        // --- LOGICA APP ---
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
             document.querySelectorAll('.btn-tab').forEach(el => {
@@ -232,7 +176,34 @@
             localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
             resetForm();
             render();
-            backupSuDrive(); 
+        }
+
+        function editTrans(id) {
+            const t = transazioni.find(item => item.id === id);
+            document.getElementById('edit-id').value = t.id;
+            document.getElementById('tipo').value = t.tipo;
+            updateCategorySelect();
+            document.getElementById('categoria-select').value = t.categoria;
+            document.getElementById('importo').value = t.importo;
+            document.getElementById('descrizione').value = t.descrizione || '';
+            document.getElementById('data-input').value = t.data;
+            
+            document.getElementById('form-title').innerText = "Modifica Movimento";
+            document.getElementById('btn-save').innerText = "Aggiorna";
+            document.getElementById('btn-save').classList.replace('bg-slate-700', 'bg-orange-600');
+            document.getElementById('cancel-edit').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('importo').value = '';
+            document.getElementById('descrizione').value = '';
+            document.getElementById('data-input').valueAsDate = new Date();
+            document.getElementById('form-title').innerText = "Aggiungi Movimento";
+            document.getElementById('btn-save').innerText = "Registra";
+            document.getElementById('btn-save').classList.replace('bg-orange-600', 'bg-slate-700');
+            document.getElementById('cancel-edit').classList.add('hidden');
         }
 
         function render() {
@@ -283,88 +254,115 @@
                 list.appendChild(item);
             });
 
+            const risparmi = ent - usc;
             document.getElementById('tot-entrate').innerText = `€ ${ent.toFixed(2)}`;
             document.getElementById('tot-uscite').innerText = `€ ${usc.toFixed(2)}`;
-            document.getElementById('tot-risparmi').innerText = `€ ${(ent - usc).toFixed(2)}`;
+            document.getElementById('tot-risparmi').innerText = `€ ${risparmi.toFixed(2)}`;
 
             updateChart(stats, usc);
             renderStatsDetails(stats, usc);
         }
 
-        // Funzioni helper rimosse dal corpo principale per brevità ma necessarie
-        function editTrans(id) {
-            const t = transazioni.find(item => item.id === id);
-            document.getElementById('edit-id').value = t.id;
-            document.getElementById('tipo').value = t.tipo;
-            updateCategorySelect();
-            document.getElementById('categoria-select').value = t.categoria;
-            document.getElementById('importo').value = t.importo;
-            document.getElementById('descrizione').value = t.descrizione || '';
-            document.getElementById('data-input').value = t.data;
-            document.getElementById('form-title').innerText = "Modifica Movimento";
-            document.getElementById('btn-save').innerText = "Aggiorna";
-            document.getElementById('cancel-edit').classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function resetForm() {
-            document.getElementById('edit-id').value = '';
-            document.getElementById('importo').value = '';
-            document.getElementById('descrizione').value = '';
-            document.getElementById('data-input').valueAsDate = new Date();
-            document.getElementById('form-title').innerText = "Aggiungi Movimento";
-            document.getElementById('btn-save').innerText = "Registra";
-            document.getElementById('cancel-edit').classList.add('hidden');
-        }
-
         function updateChart(stats, total) {
             const ctx = document.getElementById('expenseChart').getContext('2d');
             if(chart) chart.destroy();
+            
             const keys = Object.keys(stats);
             if(keys.length === 0) return;
+
+            const values = Object.values(stats);
+            const labelsWithPerc = keys.map((k, i) => {
+                const p = ((values[i] / total) * 100).toFixed(1);
+                return `${k} (${p}%)`;
+            });
+
             chart = new Chart(ctx, {
-                type: 'pie',
-                data: { labels: keys.map(k => `${k} (${((stats[k]/total)*100).toFixed(1)}%)`), datasets: [{ data: Object.values(stats), backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#eab308', '#06b6d4'] }] },
-                options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } } }
+                type: 'pie', // Torta completa
+                data: { 
+                    labels: labelsWithPerc, 
+                    datasets: [{ 
+                        data: values, 
+                        backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#eab308', '#06b6d4'], 
+                        borderWidth: 2, 
+                        borderColor: '#ffffff' 
+                    }] 
+                },
+                options: { 
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } 
+                    } 
+                }
             });
         }
 
         function renderStatsDetails(stats, total) {
             const container = document.getElementById('category-breakdown');
             container.innerHTML = '<h3 class="text-xs font-bold text-gray-400 uppercase border-b border-gray-100 pb-2">Analisi Spese</h3>';
-            if(total === 0) return container.innerHTML += '<p class="text-center text-gray-400 py-4 text-sm">Nessuna spesa</p>';
+            if(total === 0) {
+                container.innerHTML += '<p class="text-center text-gray-400 py-4 text-sm">Nessuna spesa</p>';
+                return;
+            }
             for(let c in stats) {
                 let p = ((stats[c]/total)*100).toFixed(1);
-                container.innerHTML += `<div class="space-y-1"><div class="flex justify-between text-xs"><span>${c}</span><span class="font-bold">€${stats[c].toFixed(2)}</span></div><div class="w-full bg-gray-100 h-1.5 rounded-full"><div class="bg-orange-500 h-1.5 rounded-full" style="width:${p}%"></div></div></div>`;
+                container.innerHTML += `<div class="space-y-1">
+                    <div class="flex justify-between text-xs"><span>${c}</span><span class="font-bold">€${stats[c].toFixed(2)}</span></div>
+                    <div class="w-full bg-gray-100 h-1.5 rounded-full"><div class="bg-orange-500 h-1.5 rounded-full" style="width:${p}%"></div></div>
+                </div>`;
             }
         }
 
-        function deleteCategory(tipo, index) { if(confirm("Eliminare?")) { categorie[tipo].splice(index, 1); localStorage.setItem('categorie_v5', JSON.stringify(categorie)); render(); backupSuDrive(); } }
-        function addCustomCategory() { const n = document.getElementById('nuova-cat-nome').value.trim(); const t = document.getElementById('nuova-cat-tipo').value; if(n) { categorie[t].push(n); localStorage.setItem('categorie_v5', JSON.stringify(categorie)); render(); backupSuDrive(); } document.getElementById('nuova-cat-nome').value = ''; }
-        function navigate(dir) { if (viewType === 'mensile') currentDate.setMonth(currentDate.getMonth() + dir); else currentDate.setFullYear(currentDate.getFullYear() + dir); render(); }
-        function changeView(v) { viewType = v; render(); }
-
+        // Altre funzioni di servizio (export, import, category manage)
+        function deleteCategory(tipo, index) {
+            if(confirm("Eliminare la categoria?")) {
+                categorie[tipo].splice(index, 1);
+                localStorage.setItem('categorie_v5', JSON.stringify(categorie));
+                render();
+            }
+        }
+        function addCustomCategory() {
+            const nome = document.getElementById('nuova-cat-nome').value.trim();
+            const tipo = document.getElementById('nuova-cat-tipo').value;
+            if(!nome) return;
+            if(!categorie[tipo].includes(nome)) {
+                categorie[tipo].push(nome);
+                localStorage.setItem('categorie_v5', JSON.stringify(categorie));
+            }
+            document.getElementById('nuova-cat-nome').value = '';
+            render();
+        }
+        function navigate(dir) {
+            if (viewType === 'mensile') currentDate.setMonth(currentDate.getMonth() + dir);
+            else currentDate.setFullYear(currentDate.getFullYear() + dir);
+            render();
+        }
+        function changeView(v) {
+            viewType = v;
+            document.getElementById('v-m').className = v === 'mensile' ? 'text-gray-800' : 'text-gray-400';
+            document.getElementById('v-a').className = v === 'annuale' ? 'text-gray-800' : 'text-gray-400';
+            render();
+        }
         function exportData() {
             const blob = new Blob([JSON.stringify({transazioni, categorie})], {type: 'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `finance_backup.json`; a.click();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `finance_backup.json`;
+            a.click();
         }
-
         function importData(event) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const imported = JSON.parse(e.target.result);
-                if(confirm("Sovrascrivere i dati con il file importato?")) {
+                if(confirm("Importare i dati?")) {
                     transazioni = imported.transazioni; categorie = imported.categorie;
-                    render(); backupSuDrive();
+                    localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
+                    localStorage.setItem('categorie_v5', JSON.stringify(categorie));
+                    render();
                 }
             };
             reader.readAsText(event.target.files[0]);
         }
 
-        // --- AVVIO AUTOMATICO ---
-        window.onload = caricaDaDrive;
-        document.getElementById('data-input').valueAsDate = new Date();
+        render();
     </script>
 </body>
 </html>
-
