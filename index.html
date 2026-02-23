@@ -16,9 +16,10 @@
         .scroll-container::-webkit-scrollbar { width: 4px; }
         .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         input:focus, select:focus { border: 2px solid #f97316 !important; outline: none; }
-        /* Animazione per il caricamento */
+        
+        /* Animazione per il tasto Sincronizza */
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .syncing { animation: pulse 1s infinite; color: #f97316 !important; }
+        .syncing { animation: pulse 1s infinite; color: #f97316 !important; font-weight: 900; }
     </style>
 </head>
 <body class="p-4 flex justify-center">
@@ -111,13 +112,15 @@
             </div>
         </main>
 
-        <footer class="flex justify-center gap-4 py-4">
+        <footer class="flex justify-center gap-4 py-4 border-t border-gray-100">
             <button onclick="exportData()" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-slate-600">Esporta</button>
+            <span class="text-gray-200">|</span>
+            <button id="sync-btn" onclick="backupSuDrive()" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-orange-500">Sincronizza</button>
+            <span class="text-gray-200">|</span>
             <label class="text-[10px] text-gray-400 font-bold uppercase tracking-widest cursor-pointer hover:text-slate-600">
                 Importa
                 <input type="file" id="importFile" class="hidden" onchange="importData(event)">
             </label>
-            <button id="sync-label" onclick="backupSuDrive()" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-orange-500">☁️ Cloud Sync</button>
         </footer>
     </div>
 
@@ -131,43 +134,43 @@
         let currentDate = new Date();
         let chart;
 
-        // --- FUNZIONE BACKUP GOOGLE DRIVE ---
+        // --- CONFIGURAZIONE GOOGLE DRIVE ---
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwTs_GmK7fryqr_XFBn-Q9kFq6dqlw2AK1ALe_9xpXeDI6OcaaTXoIJJUivw3DUYy2cCg/exec";
+
         async function backupSuDrive() {
-            const syncLabel = document.getElementById('sync-label');
-            const urlScript = "https://script.google.com/macros/s/AKfycbwTs_GmK7fryqr_XFBn-Q9kFq6dqlw2AK1ALe_9xpXeDI6OcaaTXoIJJUivw3DUYy2cCg/exec"; // <--- METTI IL TUO URL QUI
+            const btn = document.getElementById('sync-btn');
+            btn.classList.add('syncing');
+            btn.innerText = "Sincronizzazione...";
 
-            if (urlScript.includes("INCOLLA_QUI")) {
-                console.warn("URL di Google Apps Script non configurato.");
-                return;
-            }
-
-            syncLabel.classList.add('syncing');
-            syncLabel.innerText = "☁️ Sincronizzazione...";
-
-            const backupDati = {
+            const payload = {
                 contenuto: JSON.stringify({
-                    ultimoAggiornamento: new Date().toLocaleString(),
+                    backup_date: new Date().toLocaleString(),
                     transazioni: transazioni,
                     categorie: categorie
                 }, null, 2)
             };
 
             try {
-                await fetch(urlScript, {
+                await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', 
-                    cache: 'no-cache',
-                    body: JSON.stringify(backupDati)
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
                 });
+                
+                // Feedback successo
                 setTimeout(() => {
-                    syncLabel.classList.remove('syncing');
-                    syncLabel.innerText = "✅ Sincronizzato";
-                    setTimeout(() => syncLabel.innerText = "☁️ Cloud Sync", 3000);
+                    btn.classList.remove('syncing');
+                    btn.classList.add('text-green-500');
+                    btn.innerText = "Sincronizzato!";
+                    setTimeout(() => {
+                        btn.innerText = "Sincronizza";
+                        btn.classList.remove('text-green-500');
+                    }, 3000);
                 }, 1000);
-            } catch (error) {
-                console.error("Errore backup:", error);
-                syncLabel.innerText = "❌ Errore Cloud";
-                syncLabel.classList.remove('syncing');
+            } catch (e) {
+                btn.innerText = "Errore!";
+                btn.classList.remove('syncing');
+                console.error(e);
             }
         }
 
@@ -212,7 +215,7 @@
             localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
             resetForm();
             render();
-            backupSuDrive(); // Backup automatico dopo ogni salvataggio
+            backupSuDrive(); // Backup automatico dopo ogni modifica
         }
 
         function editTrans(id) {
@@ -252,4 +255,107 @@
             const catList = document.getElementById('categories-manage-list');
             catList.innerHTML = '';
             ['uscita', 'entrata'].forEach(t => {
-                (categorie[t] || []
+                (categorie[t] || []).forEach((c, idx) => {
+                    catList.innerHTML += `<div class="flex justify-between items-center text-xs bg-white p-2 rounded border border-gray-100 shadow-sm">
+                        <span>${t === 'entrata' ? '🟢' : '🔴'} ${c}</span>
+                        <button onclick="deleteCategory('${t}', ${idx})" class="text-gray-400 hover:text-red-500 font-bold">✕</button>
+                    </div>`;
+                });
+            });
+
+            const filtrati = transazioni.filter(t => {
+                const d = new Date(t.data);
+                return viewType === 'mensile' ? (d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear()) : (d.getFullYear() === currentDate.getFullYear());
+            });
+
+            let ent = 0, usc = 0;
+            const stats = {};
+            const list = document.getElementById('lista-transazioni');
+            list.innerHTML = '';
+
+            filtrati.sort((a,b) => new Date(b.data) - new Date(a.data)).forEach(t => {
+                if(t.tipo === 'entrata') ent += t.importo;
+                else {
+                    usc += t.importo;
+                    stats[t.categoria] = (stats[t.categoria] || 0) + t.importo;
+                }
+                const item = document.createElement('div');
+                item.onclick = () => editTrans(t.id);
+                item.className = "card p-3 flex justify-between items-center text-sm cursor-pointer hover:bg-gray-50 transition border-l-4 " + (t.tipo === 'entrata' ? 'border-green-500' : 'border-red-500');
+                item.innerHTML = `
+                    <div class="overflow-hidden">
+                        <p class="text-[9px] text-gray-400 font-bold uppercase">${t.data}</p>
+                        <p class="font-bold text-gray-700">${t.categoria}</p>
+                        <p class="text-[11px] text-gray-500 truncate italic">${t.descrizione || ''}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="${t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600'} font-black">€${t.importo.toFixed(2)}</span>
+                    </div>`;
+                list.appendChild(item);
+            });
+
+            const risparmi = ent - usc;
+            document.getElementById('tot-entrate').innerText = `€ ${ent.toFixed(2)}`;
+            document.getElementById('tot-uscite').innerText = `€ ${usc.toFixed(2)}`;
+            document.getElementById('tot-risparmi').innerText = `€ ${risparmi.toFixed(2)}`;
+
+            updateChart(stats, usc);
+            renderStatsDetails(stats, usc);
+        }
+
+        function updateChart(stats, total) {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            if(chart) chart.destroy();
+            const keys = Object.keys(stats);
+            if(keys.length === 0) return;
+            const values = Object.values(stats);
+            const labelsWithPerc = keys.map((k, i) => `${k} (${((values[i] / total) * 100).toFixed(1)}%)`);
+            chart = new Chart(ctx, {
+                type: 'pie',
+                data: { labels: labelsWithPerc, datasets: [{ data: values, backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#eab308', '#06b6d4'], borderWidth: 2, borderColor: '#ffffff' }] },
+                options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } } }
+            });
+        }
+
+        function renderStatsDetails(stats, total) {
+            const container = document.getElementById('category-breakdown');
+            container.innerHTML = '<h3 class="text-xs font-bold text-gray-400 uppercase border-b border-gray-100 pb-2">Analisi Spese</h3>';
+            if(total === 0) { container.innerHTML += '<p class="text-center text-gray-400 py-4 text-sm">Nessuna spesa</p>'; return; }
+            for(let c in stats) {
+                let p = ((stats[c]/total)*100).toFixed(1);
+                container.innerHTML += `<div class="space-y-1"><div class="flex justify-between text-xs"><span>${c}</span><span class="font-bold">€${stats[c].toFixed(2)}</span></div><div class="w-full bg-gray-100 h-1.5 rounded-full"><div class="bg-orange-500 h-1.5 rounded-full" style="width:${p}%"></div></div></div>`;
+            }
+        }
+
+        function deleteCategory(tipo, index) { if(confirm("Eliminare la categoria?")) { categorie[tipo].splice(index, 1); localStorage.setItem('categorie_v5', JSON.stringify(categorie)); render(); } }
+        function addCustomCategory() { const nome = document.getElementById('nuova-cat-nome').value.trim(); const tipo = document.getElementById('nuova-cat-tipo').value; if(!nome) return; if(!categorie[tipo].includes(nome)) { categorie[tipo].push(nome); localStorage.setItem('categorie_v5', JSON.stringify(categorie)); } document.getElementById('nuova-cat-nome').value = ''; render(); }
+        function navigate(dir) { if (viewType === 'mensile') currentDate.setMonth(currentDate.getMonth() + dir); else currentDate.setFullYear(currentDate.getFullYear() + dir); render(); }
+        function changeView(v) { viewType = v; document.getElementById('v-m').className = v === 'mensile' ? 'text-gray-800' : 'text-gray-400'; document.getElementById('v-a').className = v === 'annuale' ? 'text-gray-800' : 'text-gray-400'; render(); }
+        
+        function exportData() {
+            const blob = new Blob([JSON.stringify({transazioni, categorie})], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `finance_backup.json`;
+            a.click();
+        }
+
+        function importData(event) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imported = JSON.parse(e.target.result);
+                if(confirm("Importare i dati? Questo sovrascriverà quelli attuali.")) {
+                    transazioni = imported.transazioni; categorie = imported.categorie;
+                    localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
+                    localStorage.setItem('categorie_v5', JSON.stringify(categorie));
+                    render();
+                    backupSuDrive();
+                }
+            };
+            reader.readAsText(event.target.files[0]);
+        }
+
+        render();
+    </script>
+</body>
+</html>
