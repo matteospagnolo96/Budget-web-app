@@ -9,6 +9,32 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        <textarea id="datiUtente" placeholder="Scrivi qualcosa da salvare..."></textarea>
+<button onclick="inviaADrive()">Salva su Google Drive</button>
+
+<script>
+async function inviaADrive() {
+    const testo = document.getElementById('datiUtente').value;
+    const urlScript = "https://accounts.google.com/signin/oauth/warning?authuser=0&part=AJi8hAPJ4ZKNW-JsRFPLQ7gY4ocVObPtFvkW4HPoV9Y2413SKl3sG7PAKXMy-84xBKi1NkqaPFE3GPNrDJDXUygbN9sotcxcX3wy6dlNC6scr2e6SpsCOfA22KkdzK3A8tskqXcphwQ3QDf6rTOoijBTJPVwQ9Yy6-1XXdJvEoTcQnrOvFTRW9EYdBdm_JD3ujLzo0RXiklDIYy8Dr0P6X3zBsvmpDmdPE3ma7JaCXX8LC-mh7UxCEOasfo7bBEgVj-N8cb57ib-ps0kMIlG6u7Oe0BuuShS3TCgIucyXkuV7KbQJcenG0Hi6w9YWZRndQ8lw8jVrxu9TB9wQy5df54tPa9jlsrD-niXYjKOzai66GzxVumY_b_p0K8onv55WFzM_fLlcWZ0GvZW3wcpMVZ_KVYL-VOUKyuwiMIN7jwxztSyLGfkOKCFOUwAHel6J-f7LEv5NgyJxCrMQ7d1AMwayiNFt3UGVWiy0rO8gl_qr_7ThSdwAYV8cGbsqsQZP7-uRQVlFBHIjswUpZnoN7H3xkggueF-3gLzeQFQmtyQtTWXUD6ktDTnXWZGA7AJR_9IKioqETNfs89i3y3vGhP1K96q9kCY5_RotrQnmljxJ4PEMTO-TF6ba3CwDdilSjMilWvokvbIDr5XRVIRBj8PZr7q8s567g&flowName=GeneralOAuthFlow&hl=en-US&as=S-550717887%3A1771871386094675&client_id=910583012733-7ksealnnfdouv0o5b0gbnk4ggppk9lqj.apps.googleusercontent.com&rapt=AEjHL4ODuverxBvwKoACy-cRzP4wyoWcu9tXdFCqkG6riab5jO2FfksNh_08BQKfbWZmcmkMVhUtF5LAKaExnN5CVSo6BQFDjpmjpZJgNTaxStXFByfG7Jo#";
+
+    const payload = {
+        contenuto: testo
+    };
+
+    try {
+        const response = await fetch(urlScript, {
+            method: 'POST',
+            mode: 'no-cors', // Importante per evitare blocchi CORS
+            cache: 'no-cache',
+            body: JSON.stringify(payload)
+        });
+        alert("Richiesta inviata! Controlla il tuo Google Drive.");
+    } catch (error) {
+        console.error("Errore:", error);
+        alert("Si è verificato un errore.");
+    }
+}
+</script>
         body { background-color: #f8fafc; font-family: 'Inter', sans-serif; padding-bottom: 40px; color: #334155; }
         .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
         .tab-content { display: none; }
@@ -368,4 +394,5 @@
     </script>
 </body>
 </html>
+
 
