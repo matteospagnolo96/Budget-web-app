@@ -22,10 +22,10 @@
         body { 
             background-color: #f8fafc; 
             font-family: 'Inter', sans-serif; 
-            padding-bottom: env(safe-area-inset-bottom); /* Ottimizzazione iPhone */
+            padding-bottom: env(safe-area-inset-bottom);
             color: #334155;
-            overscroll-behavior: none; /* Impedisce il rimbalzo del sito */
-            user-select: none; /* Impedisce selezione testo accidentale */
+            overscroll-behavior: none;
+            user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
         
@@ -38,8 +38,10 @@
         .scroll-container::-webkit-scrollbar { width: 4px; }
         .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
+        .chart-wrapper { position: relative; height: 320px; width: 100%; }
+        
         input, select, textarea { 
-            user-select: text; /* Permette scrittura nei campi */
+            user-select: text;
             -webkit-appearance: none; 
         }
         
@@ -115,8 +117,10 @@
 
         <main id="tab-stats" class="tab-content space-y-4">
             <div class="card p-5">
-                <h3 class="text-center font-bold text-gray-600 mb-4 uppercase text-[10px] tracking-widest">Distribuzione Spese (%)</h3>
-                <canvas id="expenseChart" height="300"></canvas>
+                <h3 class="text-center font-bold text-gray-600 mb-4 uppercase text-[10px] tracking-widest">Distribuzione Spese</h3>
+                <div class="chart-wrapper">
+                    <canvas id="expenseChart"></canvas>
+                </div>
             </div>
             <div id="category-breakdown" class="card p-5 space-y-3"></div>
         </main>
@@ -170,6 +174,12 @@
         let viewType = 'mensile';
         let currentDate = new Date();
         let chart;
+
+        // Palette di colori predefinita per coerenza
+        const baseColors = [
+            '#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', 
+            '#06b6d4', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6'
+        ];
 
         window.addEventListener('load', () => {
             const config = JSON.parse(localStorage.getItem('jsonbin_config'));
@@ -234,6 +244,10 @@
             const btn = document.getElementById('tab-btn-' + tab);
             btn.classList.add('active');
             btn.classList.remove('text-gray-500');
+            
+            if(tab === 'stats' && chart) {
+                chart.resize();
+            }
             render();
         }
 
@@ -261,7 +275,7 @@
             }
 
             saveLocal();
-            saveToCloud(); // Auto-salvataggio
+            saveToCloud();
             resetForm();
             render();
         }
@@ -373,16 +387,57 @@
             const canvas = document.getElementById('expenseChart');
             if(!canvas) return;
             const ctx = canvas.getContext('2d');
-            if(chart) chart.destroy();
+            
             const keys = Object.keys(stats);
-            if(keys.length === 0) return;
+            if(keys.length === 0) {
+                if(chart) chart.destroy();
+                return;
+            }
+
+            // Genera colori dinamici basati sulla lunghezza delle chiavi
+            const chartColors = keys.map((_, i) => baseColors[i % baseColors.length]);
+
+            if(chart) chart.destroy();
+
             chart = new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: keys,
-                    datasets: [{ data: Object.values(stats), backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'], borderWidth: 2, borderColor: '#ffffff' }]
+                    datasets: [{ 
+                        data: Object.values(stats), 
+                        backgroundColor: chartColors, 
+                        borderWidth: 2, 
+                        borderColor: '#ffffff' 
+                    }]
                 },
-                options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } } }
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                boxWidth: 12, 
+                                font: {size: 11},
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                        return {
+                                            text: `${label} (${percentage})`,
+                                            fillStyle: data.datasets[0].backgroundColor[i], // Colore preso dal dataset
+                                            strokeStyle: '#ffffff',
+                                            lineWidth: 1,
+                                            hidden: false,
+                                            index: i
+                                        };
+                                    });
+                                }
+                            } 
+                        }
+                    } 
+                }
             });
         }
 
@@ -391,10 +446,23 @@
             if(!container) return;
             container.innerHTML = '<h3 class="text-xs font-bold text-gray-400 uppercase border-b pb-2">Analisi Spese</h3>';
             if(total === 0) { container.innerHTML += '<p class="text-center text-gray-400 py-4 text-sm">Nessuna spesa</p>'; return; }
-            for(let c in stats) {
+            
+            const keys = Object.keys(stats);
+            keys.forEach((c, i) => {
                 let p = ((stats[c]/total)*100).toFixed(1);
-                container.innerHTML += `<div class="space-y-1"><div class="flex justify-between text-xs"><span>${c}</span><span class="font-bold">€${stats[c].toFixed(2)}</span></div><div class="w-full bg-gray-100 h-1 rounded-full"><div class="bg-orange-500 h-1 rounded-full" style="width:${p}%"></div></div></div>`;
-            }
+                // Usa lo stesso colore del grafico per la barra di progresso in basso
+                const barColor = baseColors[i % baseColors.length];
+                container.innerHTML += `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span>${c}</span>
+                            <span class="font-bold">€${stats[c].toFixed(2)}</span>
+                        </div>
+                        <div class="w-full bg-gray-100 h-1.5 rounded-full">
+                            <div class="h-1.5 rounded-full" style="width:${p}%; background-color: ${barColor}"></div>
+                        </div>
+                    </div>`;
+            });
         }
 
         function exportData() {
@@ -419,6 +487,3 @@
     </script>
 </body>
 </html>
-
-
-
