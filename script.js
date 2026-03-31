@@ -18,6 +18,9 @@ db.enablePersistence().catch(err => console.log("Persistenza offline non abilita
 
 // Data base Locale offline e variabili d'app
 let transazioni = JSON.parse(localStorage.getItem('finanze_v5')) || [];
+let budgetLimits = JSON.parse(localStorage.getItem('budget_v6')) || {};
+let speseRicorrenti = JSON.parse(localStorage.getItem('ricorrenti_v6')) || [];
+let lastRecurringCheck = localStorage.getItem('lastCheck_v6') || null;
 let categorie = JSON.parse(localStorage.getItem('categorie_v5')) || {
     uscita: ['🛒 Cibo', '🚗 Trasporti', '🏠 Casa', '🍕 Svago', '💊 Salute'],
     entrata: ['💰 Stipendio', '📈 Investimenti', '🎁 Regalo']
@@ -137,12 +140,19 @@ async function syncFromCloud() {
             const data = docSnap.data();
             transazioni = data.transazioni || [];
             categorie = data.categorie || categorie;
+            budgetLimits = data.budgetLimits || budgetLimits;
+            speseRicorrenti = data.speseRicorrenti || speseRicorrenti;
+            lastRecurringCheck = data.lastRecurringCheck || lastRecurringCheck;
             
             // Aggiorna la cache locale così potrai usarla anche offline
             localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
             localStorage.setItem('categorie_v5', JSON.stringify(categorie));
+            localStorage.setItem('budget_v6', JSON.stringify(budgetLimits));
+            localStorage.setItem('ricorrenti_v6', JSON.stringify(speseRicorrenti));
+            if (lastRecurringCheck) localStorage.setItem('lastCheck_v6', lastRecurringCheck);
             
             showToast("Banca dati sincronizzata dal Cloud", "success");
+            window.checkRecurringExpenses(); // Il MaggiorDomus controlla gli abbonamenti
         } else {
             // DOCUMENTO NON ESISTE = Primo Login Assoluto. ESEGUI MIGRAZIONE DATI LOCALI.
             if (transazioni.length > 0) {
@@ -168,6 +178,9 @@ async function syncToCloud() {
         await docRef.set({
             transazioni: transazioni,
             categorie: categorie,
+            budgetLimits: budgetLimits,
+            speseRicorrenti: speseRicorrenti,
+            lastRecurringCheck: lastRecurringCheck,
             updatedAt: new Date().toISOString()
         });
         document.getElementById('cloud-status').innerText = `Sincronizzazione Cloud Automatica ✔️`;
@@ -180,8 +193,130 @@ async function syncToCloud() {
 function saveLocal() {
     localStorage.setItem('finanze_v5', JSON.stringify(transazioni));
     localStorage.setItem('categorie_v5', JSON.stringify(categorie));
+    localStorage.setItem('budget_v6', JSON.stringify(budgetLimits));
+    localStorage.setItem('ricorrenti_v6', JSON.stringify(speseRicorrenti));
+    if (lastRecurringCheck) localStorage.setItem('lastCheck_v6', lastRecurringCheck);
     syncToCloud(); 
 }
+
+window.setBudgetLimit = function() {
+    const cat = document.getElementById('budget-cat-select').value;
+    const limit = parseFloat(document.getElementById('budget-limit-val').value);
+    if(cat && !isNaN(limit) && limit > 0) {
+        budgetLimits[cat] = limit;
+        saveLocal();
+        render();
+        showToast(`Limite di €${limit} impostato per ${cat}`, "success");
+        document.getElementById('budget-limit-val').value = '';
+    } else {
+        showToast("Inserisci un importo valido", "error");
+    }
+};
+
+window.deleteBudgetLimit = function(cat) {
+    if(confirm(`Rimuovere il limite mensile per ${cat}?`)) {
+        delete budgetLimits[cat];
+        saveLocal();
+        render();
+        showToast(`Limite rimosso!`, "error");
+    }
+};
+
+window.checkRecurringExpenses = function() {
+    if (speseRicorrenti.length === 0) return;
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    if (!lastRecurringCheck) {
+        lastRecurringCheck = today.toISOString();
+        saveLocal();
+        return;
+    }
+
+    const lastCheckDate = new Date(lastRecurringCheck);
+    lastCheckDate.setHours(0,0,0,0);
+    if (lastCheckDate.getTime() >= today.getTime()) return; // Già checkato oggi
+    
+    let operazioniFatte = 0;
+    let iterDate = new Date(lastCheckDate);
+    iterDate.setDate(iterDate.getDate() + 1); // dal giorno successivo all'ultimo login
+
+    while (iterDate <= today) {
+        let maxDaysInMonth = new Date(iterDate.getFullYear(), iterDate.getMonth() + 1, 0).getDate();
+        
+        speseRicorrenti.forEach(rec => {
+            // Se il limite mese è 28 e la spesa è settata il 30, la scala il 28
+            let targetDay = rec.giornoDelMese > maxDaysInMonth ? maxDaysInMonth : rec.giornoDelMese;
+            
+            if (iterDate.getDate() === targetDay) {
+                // Inserimento spesa fissa automatica datata
+                transazioni.push({
+                    id: Date.now() + Math.random(), 
+                    importo: rec.importo,
+                    tipo: rec.tipo,
+                    categoria: rec.categoria,
+                    descrizione: rec.descrizione + ' ⭐', // Stellina = Automatica
+                    data: iterDate.toISOString().split('T')[0]
+                });
+                operazioniFatte++;
+            }
+        });
+        iterDate.setDate(iterDate.getDate() + 1);
+    }
+
+    if (operazioniFatte > 0) {
+        showToast(`🤖 Benvenuto! In tua assenza ho processato ${operazioniFatte} spesa ${operazioniFatte>1?'ricorrenti':'ricorrente'}.`, "success");
+    }
+
+    lastRecurringCheck = today.toISOString();
+    saveLocal();
+    render();
+};
+
+window.updateRecCategorySelect = function() {
+    const tipo = document.getElementById('rec-tipo').value;
+    const select = document.getElementById('rec-cat');
+    if(select) select.innerHTML = (categorie[tipo] || []).map(c => `<option value="${c}">${c}</option>`).join('');
+};
+
+window.addRecurringExpense = function() {
+    const tipo = document.getElementById('rec-tipo').value;
+    const categoria = document.getElementById('rec-cat').value;
+    const descrizione = document.getElementById('rec-desc').value.trim();
+    const importo = Math.abs(parseFloat(document.getElementById('rec-importo').value));
+    const giornoDelMese = parseInt(document.getElementById('rec-giorno').value);
+
+    // Valida valori
+    if(!categoria || isNaN(importo) || importo <= 0 || isNaN(giornoDelMese) || giornoDelMese < 1 || giornoDelMese > 31) {
+        showToast("Compila Titolo, Importo e un Giorno tra 1 e 31", "error");
+        return;
+    }
+
+    speseRicorrenti.push({ id: Date.now(), tipo, categoria, descrizione, importo, giornoDelMese });
+    
+    if (!lastRecurringCheck) {
+        const t = new Date(); t.setHours(0,0,0,0);
+        lastRecurringCheck = t.toISOString();
+    }
+    
+    saveLocal();
+    render();
+    showToast(`Abbonamento del Giorno ${giornoDelMese} Attivato!`, "success");
+    
+    document.getElementById('rec-importo').value = '';
+    document.getElementById('rec-desc').value = '';
+    document.getElementById('rec-giorno').value = '';
+};
+
+window.deleteRecurringExpense = function(id) {
+    if(confirm("Disattivare il calcolo automatico per questa voce?")) {
+        speseRicorrenti = speseRicorrenti.filter(r => r.id !== id);
+        saveLocal();
+        render();
+        showToast("Automazione disattivata", "error");
+    }
+};
 
 // ----------------------------------------------------
 // UI APP LOGIC
@@ -334,6 +469,23 @@ function render() {
     label.innerText = currentDate.toLocaleDateString('it-IT', viewType === 'mensile' ? {month:'long', year:'numeric'} : {year:'numeric'});
     window.updateCategorySelect();
     
+    const budgetSelect = document.getElementById('budget-cat-select');
+    if(budgetSelect) {
+        budgetSelect.innerHTML = (categorie['uscita'] || []).map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+    const budgetList = document.getElementById('budget-limits-list');
+    if(budgetList) {
+        budgetList.innerHTML = Object.entries(budgetLimits).map(([cat, limit]) => `
+            <div class="flex justify-between items-center text-[11px] bg-white p-2 rounded-lg border border-gray-100 shadow-sm mt-2">
+                <span class="font-bold text-gray-600">🎯 ${cat}</span>
+                <div class="flex items-center gap-3">
+                    <span class="font-bold ${limit ? 'text-orange-500' : 'text-gray-700'}">Max €${parseFloat(limit).toFixed(2)}</span>
+                    <button onclick="window.deleteBudgetLimit('${cat}')" class="text-gray-400 font-bold py-1 px-2 hover:bg-red-50 hover:text-red-500 rounded transition">Elm</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
     const catList = document.getElementById('categories-manage-list');
     let catListHTML = '';
     ['uscita', 'entrata'].forEach(t => {
@@ -345,6 +497,25 @@ function render() {
         });
     });
     catList.innerHTML = catListHTML;
+
+    // Rendering Liste Automazioni
+    const recList = document.getElementById('recurring-list');
+    if (recList) {
+        if(!document.getElementById('rec-cat').value) window.updateRecCategorySelect(); // Innesco Select la prima volta
+        
+        recList.innerHTML = speseRicorrenti.sort((a,b)=>a.giornoDelMese-b.giornoDelMese).map(r => `
+            <div class="flex justify-between items-center text-[11px] bg-white p-2 rounded-lg border border-gray-100 shadow-sm mt-2 border-l-4 ${r.tipo === 'entrata' ? 'border-l-green-400' : 'border-l-red-400'}">
+                <div class="flex flex-col">
+                    <span class="font-bold text-gray-700">${r.descrizione} <span class="text-gray-400 font-medium">(${r.categoria})</span></span>
+                    <span class="text-gray-400 font-bold uppercase mt-0.5">🗓️ Ogni Giorno ${r.giornoDelMese}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold ${r.tipo === 'entrata' ? 'text-green-500' : 'text-red-500'}">€${r.importo.toFixed(2)}</span>
+                    <button onclick="window.deleteRecurringExpense(${r.id})" class="text-gray-400 font-bold px-1.5 py-1 hover:bg-gray-100 hover:text-red-500 rounded transition">✕</button>
+                </div>
+            </div>
+        `).join('');
+    }
 
     // 1. Dati del Periodo (Per Box Statistiche in alto e Grafico a Torta)
     const filtrati_periodo = transazioni.filter(t => {
@@ -502,15 +673,45 @@ function renderStatsDetails(stats, total) {
     const keys = Object.keys(stats);
     keys.forEach((c, i) => {
         let p = ((stats[c]/total)*100).toFixed(1);
-        const barColor = baseColors[i % baseColors.length];
+        let barColor = baseColors[i % baseColors.length];
+        let infoTesto = `€ ${stats[c].toFixed(2)}`;
+        let limit = budgetLimits[c];
+
+        // Se c'è un Limite impostato, calcoliamo la saturazione (Plafond)
+        if (limit && viewType === 'mensile') {
+            const percUsata = (stats[c] / limit) * 100;
+            p = Math.min(percUsata, 100).toFixed(1);
+            
+            if (percUsata >= 100) {
+                barColor = '#ef4444'; // Sforato (Rosso Lampante)
+            } else if (percUsata >= 80) {
+                barColor = '#f97316'; // Allerta (Arancione)
+            } else {
+                barColor = '#10b981'; // Sicuro (Verde)
+            }
+            
+            infoTesto = `€ ${stats[c].toFixed(2)} <span class="text-gray-400 font-normal"> / € ${limit.toFixed(2)}</span>`;
+        } else if (limit && viewType === 'annuale') {
+            // Se vista annuale, moltiplichiamo il budget x 12 come limite indicativo per calcolare il progress
+            const annualLimit = limit * 12;
+            const percUsata = (stats[c] / annualLimit) * 100;
+            p = Math.min(percUsata, 100).toFixed(1);
+            
+            if (percUsata >= 100) barColor = '#ef4444';
+            else if (percUsata >= 80) barColor = '#f97316';
+            else barColor = '#10b981';
+            
+            infoTesto = `€ ${stats[c].toFixed(2)} <span class="text-gray-400 font-normal"> / € ${annualLimit.toFixed(2)} (Stima Ann.)</span>`;
+        }
+
         htmlContent += `
             <div class="space-y-1">
-                <div class="flex justify-between text-xs mt-2">
-                    <span>${c}</span>
-                    <span class="font-bold">€${stats[c].toFixed(2)}</span>
+                <div class="flex justify-between items-end text-[11px] mt-2 mb-1">
+                    <span class="font-medium flex items-center gap-1">${limit ? '🎯' : ''} ${c}</span>
+                    <span class="font-bold text-gray-700">${infoTesto}</span>
                 </div>
-                <div class="w-full bg-gray-100 h-1.5 rounded-full">
-                    <div class="h-1.5 rounded-full" style="width:${p}%; background-color: ${barColor}"></div>
+                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div class="h-2 rounded-full transition-all duration-700 ease-out" style="width:${p}%; background-color: ${barColor}"></div>
                 </div>
             </div>`;
     });
