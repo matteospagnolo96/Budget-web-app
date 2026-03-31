@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+body { 
+    background-color: #f8fafc; 
+    font-family: 'Inter', sans-serif; 
+    padding-bottom: env(safe-area-inset-bottom);
+    color: #334155;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
+.tab-content { display: none; }
+.active-tab { display: block; }
+.btn-tab.active { background-color: #f97316; color: white; border-color: #f97316; }
+
+.scroll-container { max-height: 320px; overflow-y: auto; padding-right: 4px; }
+.scroll-container::-webkit-scrollbar { width: 4px; }
+.scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+.chart-wrapper { position: relative; height: 320px; width: 100%; }
+
+input, select, textarea { 
+    user-select: text;
+    -webkit-appearance: none; 
+}
+
+input:focus, select:focus { border: 2px solid #f97316 !important; outline: none; }
+
+/* Inizio Toast Notification */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    background-color: #334155;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    transform: translateY(-20px);
+    animation: toast-enter 0.3s ease-out forwards;
+}
+
+.toast.toast-error { background-color: #ef4444; }
+.toast.toast-success { background-color: #10b981; }
+
+.toast-exit { animation: toast-exit 0.3s ease-in forwards; }
+
+@keyframes toast-enter {
+    from { opacity: 0; transform: translateY(-20px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toast-exit {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(-20px) scale(0.9); }
+}
+
+/* Auth Container */
+#auth-container {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #f8fafc;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.auth-card {
+    background: white;
+    padding: 30px;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    text-align: center;
+    border: 1px solid #e2e8f0;
+}
+.auth-input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s;
+}
+.auth-input:focus { border-color: #f97316; }
+
+.auth-btn {
+    width: 100%;
+    padding: 14px;
+    background: #f97316;
+    color: white;
+    font-weight: 800;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+.auth-btn-alt { background: #334155; }
+.hidden-app { display: none !important; }
