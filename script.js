@@ -13,6 +13,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Attivazione Firebase Offline Cache Database (Cache Nativa)
+db.enablePersistence().catch(err => console.log("Persistenza offline non abilitata:", err.code));
+
 // Data base Locale offline e variabili d'app
 let transazioni = JSON.parse(localStorage.getItem('finanze_v5')) || [];
 let categorie = JSON.parse(localStorage.getItem('categorie_v5')) || {
@@ -31,6 +34,18 @@ const baseColors = [
 
 window.addEventListener('load', () => {
     document.getElementById('data-input').valueAsDate = new Date();
+});
+
+// Listener per aggiornare istantaneamente il grafico se si cambia il Tema dal telefono/PC mentre l'app è aperta
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if (chart) {
+        chart.destroy();
+        chart = null;
+    }
+    const tabStats = document.getElementById('tab-stats');
+    if (tabStats && tabStats.classList.contains('active-tab')) {
+        render(); // Ridisegna forzando a rileggere i nuovi codici colore Text
+    }
 });
 
 // Funzione Notifiche
@@ -331,23 +346,57 @@ function render() {
     });
     catList.innerHTML = catListHTML;
 
-    const filtrati = transazioni.filter(t => {
+    // 1. Dati del Periodo (Per Box Statistiche in alto e Grafico a Torta)
+    const filtrati_periodo = transazioni.filter(t => {
         const d = new Date(t.data);
         return viewType === 'mensile' ? (d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear()) : (d.getFullYear() === currentDate.getFullYear());
+    });
+
+    // 2. Dati della Ricerca (Per la Lista in basso e il Box Trovati)
+    const q = (document.getElementById('searchTerm')?.value || '').toLowerCase();
+    const filtrati_ricerca = filtrati_periodo.filter(t => {
+        if (!q) return true;
+        
+        return t.categoria.toLowerCase().includes(q) || 
+               (t.descrizione || '').toLowerCase().includes(q) || 
+               t.importo.toString().includes(q);
     });
 
     let ent = 0, usc = 0;
     const stats = {};
     const list = document.getElementById('lista-transazioni');
-    
     let htmlContent = '';
-
-    filtrati.sort((a,b) => new Date(b.data) - new Date(a.data)).forEach(t => {
+    
+    // Calcolo bilancio Main Cards e Chart su TUTTO il mese/anno normale (filtrati_periodo)
+    filtrati_periodo.forEach(t => {
         if(t.tipo === 'entrata') ent += t.importo;
         else {
             usc += t.importo;
             stats[t.categoria] = (stats[t.categoria] || 0) + t.importo;
         }
+    });
+    
+    // Aggiornamento Box Sommario Ricerca usa SOLO i dati filtrati_ricerca
+    const searchSummary = document.getElementById('search-summary');
+    if (searchSummary) {
+        if (q) {
+            let searchedSum = 0;
+            filtrati_ricerca.forEach(t => {
+                searchedSum += t.tipo === 'uscita' ? -t.importo : t.importo;
+            });
+            let txtColorMatch = searchedSum >= 0 ? 'text-green-600' : 'text-red-600';
+            
+            searchSummary.classList.remove('hidden');
+            searchSummary.classList.add('flex', 'justify-between');
+            searchSummary.innerHTML = `<span>Trovati: ${filtrati_ricerca.length}</span> <span class="${txtColorMatch}">Totale: € ${Math.abs(searchedSum).toFixed(2)}</span>`;
+        } else {
+            searchSummary.classList.add('hidden');
+            searchSummary.classList.remove('flex', 'justify-between');
+        }
+    }
+
+    // Costruzione Lista HTML solo per i risultati di ricerca
+    filtrati_ricerca.sort((a,b) => new Date(b.data) - new Date(a.data)).forEach(t => {
         
         let colorClass = t.tipo === 'entrata' ? 'border-green-500' : 'border-red-500';
         let amountColorClass = t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600';
@@ -388,6 +437,10 @@ function updateChart(stats, total) {
     const chartColors = keys.map((_, i) => baseColors[i % baseColors.length]);
 
     if(chart) chart.destroy();
+    
+    // Controlla il tema attuale e cambia i colori dei testi e bordi interni al grafico
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const textColor = isDark ? '#f8fafc' : '#64748b';
 
     chart = new Chart(ctx, {
         type: 'pie',
@@ -396,17 +449,19 @@ function updateChart(stats, total) {
             datasets: [{ 
                 data: Object.values(stats), 
                 backgroundColor: chartColors, 
-                borderWidth: 2, 
-                borderColor: '#ffffff' 
+                borderWidth: isDark ? 0 : 2, 
+                borderColor: isDark ? 'transparent' : '#ffffff' 
             }]
         },
         options: { 
             responsive: true,
             maintainAspectRatio: false,
+            color: textColor,
             plugins: { 
                 legend: { 
                     position: 'bottom', 
                     labels: { 
+                        color: textColor,
                         boxWidth: 12, 
                         font: {size: 11},
                         generateLabels: (chart) => {
@@ -418,8 +473,9 @@ function updateChart(stats, total) {
                                 return {
                                     text: `${label} (${percentage})`,
                                     fillStyle: data.datasets[0].backgroundColor[i],
-                                    strokeStyle: '#ffffff',
+                                    strokeStyle: isDark ? 'transparent' : '#ffffff',
                                     lineWidth: 1,
+                                    fontColor: textColor,
                                     hidden: false,
                                     index: i
                                 };
@@ -492,4 +548,29 @@ window.importData = function(event) {
         }
     };
     reader.readAsText(event.target.files[0]);
+};
+
+window.exportCSV = function() {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "ID,Data,Tipo,Categoria,Importo,Descrizione\r\n";
+    
+    // Esporta solo le transazioni del periodo attualmente visualizzato
+    const filtrati = transazioni.filter(t => {
+        const d = new Date(t.data);
+        return viewType === 'mensile' ? (d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear()) : (d.getFullYear() === currentDate.getFullYear());
+    });
+
+    filtrati.sort((a,b) => new Date(b.data) - new Date(a.data)).forEach(t => {
+        let row = `${t.id},${t.data},${t.tipo},${t.categoria},${parseFloat(t.importo).toFixed(2)},"${(t.descrizione || '').replace(/"/g, '""')}"`;
+        csvContent += row + "\r\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `budget_export_${viewType}_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Esportazione Excel Completata!", "success");
 };

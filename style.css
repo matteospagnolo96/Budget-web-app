@@ -8,22 +8,30 @@ body {
     overscroll-behavior: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
+.card { 
+    background: white; 
+    border-radius: 16px; 
+    border: 1px solid #e2e8f0; 
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
 .tab-content { display: none; }
 .active-tab { display: block; }
-.btn-tab.active { background-color: #f97316; color: white; border-color: #f97316; }
+.btn-tab.active { background-color: #f97316; color: white !important; border-color: #f97316; }
 
 .scroll-container { max-height: 320px; overflow-y: auto; padding-right: 4px; }
 .scroll-container::-webkit-scrollbar { width: 4px; }
 .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-.chart-wrapper { position: relative; height: 320px; width: 100%; }
+.chart-wrapper { position: relative; height: 320px; width: 100%; transition: 0.3s; }
 
 input, select, textarea { 
     user-select: text;
     -webkit-appearance: none; 
+    appearance: none;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 input:focus, select:focus { border: 2px solid #f97316 !important; outline: none; }
@@ -78,6 +86,7 @@ input:focus, select:focus { border: 2px solid #f97316 !important; outline: none;
     align-items: center;
     justify-content: center;
     padding: 20px;
+    transition: background-color 0.3s ease;
 }
 .auth-card {
     background: white;
@@ -88,6 +97,7 @@ input:focus, select:focus { border: 2px solid #f97316 !important; outline: none;
     box-shadow: 0 10px 25px rgba(0,0,0,0.05);
     text-align: center;
     border: 1px solid #e2e8f0;
+    transition: 0.3s ease;
 }
 .auth-input {
     width: 100%;
@@ -98,9 +108,7 @@ input:focus, select:focus { border: 2px solid #f97316 !important; outline: none;
     background: #f8fafc;
     font-size: 14px;
     outline: none;
-    transition: 0.2s;
 }
-.auth-input:focus { border-color: #f97316; }
 
 .auth-btn {
     width: 100%;
@@ -113,3 +121,52 @@ input:focus, select:focus { border: 2px solid #f97316 !important; outline: none;
 }
 .auth-btn-alt { background: #334155; }
 .hidden-app { display: none !important; }
+
+
+/* ----------------------------------- */
+/* 🌑 DARK MODE AUTOMATICA DI SISTEMA */
+/* ----------------------------------- */
+@media (prefers-color-scheme: dark) {
+    body { background-color: #0f172a !important; color: #f8fafc !important; }
+    
+    .card { background-color: #1e293b !important; border-color: #334155 !important; }
+    
+    /* Input Form e Nativi */
+    input, select, textarea {
+        background-color: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+    input::placeholder { color: #64748b !important; }
+    
+    /* Riadattamento Classi Tailwind hardcoded in HTML */
+    .bg-white { background-color: #1e293b !important; border-color: #334155 !important;}
+    .bg-gray-50 { background-color: #0f172a !important; border-color: #334155 !important; }
+    .bg-gray-100, .bg-gray-200 { background-color: #334155 !important; color: #f8fafc !important; border-color: #475569 !important;}
+    
+    .text-gray-800, .text-slate-800, .text-gray-700 { color: #f8fafc !important; }
+    .text-gray-600 { color: #cbd5e1 !important; }
+    .text-gray-500, .text-gray-400 { color: #94a3b8 !important; }
+    
+    /* Card Risparmi Testo Arancione */
+    .bg-orange-500 { background-color: #0f172a !important; color: #f97316 !important; border: 1px solid #334155 !important; }
+    .shadow-orange-100 { box-shadow: 0 4px 15px rgba(249, 115, 22, 0.05) !important; }
+    
+    .border-gray-200, .border-gray-100 { border-color: #334155 !important; }
+    
+    .hover\:bg-gray-50:hover { background-color: #334155 !important; }
+    .hover\:bg-gray-200:hover, .hover\:bg-gray-300:hover { background-color: #475569 !important; }
+    
+    /* Transazioni (Colori leggibili al buio) */
+    .text-green-600 { color: #34d399 !important; } /* green-400 */
+    .text-red-600 { color: #f87171 !important; } /* red-400 */
+    .border-green-500 { border-color: #10b981 !important; }
+    .border-red-500 { border-color: #ef4444 !important; }
+    
+    /* Auth Modal e Topbar */
+    #auth-container { background-color: #0f172a !important; }
+    .auth-card { background-color: #1e293b !important; border-color: #334155 !important; }
+    .auth-input { background-color: #0f172a !important; border-color: #334155 !important; color: white !important;}
+    
+    /* Chart riabilitato a piena luminosita per non sporcare il bianco text */
+}

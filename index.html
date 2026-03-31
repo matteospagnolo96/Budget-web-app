@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Finanze">
+    <meta name="color-scheme" content="light dark">
     <link rel="icon" type="image/png" href="icona.png?v=2">
     <link rel="apple-touch-icon" href="icona.png?v=2">
     <link rel="manifest" href="manifest.json">
@@ -99,7 +100,13 @@
             </div>
 
             <div class="space-y-2">
-                <h3 class="text-[10px] font-bold text-gray-400 uppercase ml-2 tracking-widest">Movimenti Recenti</h3>
+                <div class="flex items-center justify-between ml-2 mb-2">
+                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Movimenti Recenti</h3>
+                </div>
+                <!-- Motore di Ricerca -->
+                <input type="text" id="searchTerm" oninput="render()" placeholder="🔍 Cerca per categoria, descrizione..." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm mb-2 font-medium">
+                <div id="search-summary" class="hidden text-[11px] font-bold text-gray-500 bg-gray-100 px-3 py-2 rounded-lg mb-2"></div>
+                
                 <div id="lista-transazioni" class="scroll-container space-y-2"></div>
             </div>
         </main>
@@ -131,14 +138,17 @@
             </div>
 
             <div class="card p-5 space-y-3 shadow-sm">
-                <h3 class="font-bold text-gray-700 text-[10px] uppercase tracking-wider">💾 Backup Manuale (File)</h3>
-                <div class="grid grid-cols-2 gap-2">
+                <h3 class="font-bold text-gray-700 text-[10px] uppercase tracking-wider">💾 Dati e Backup</h3>
+                <div class="grid grid-cols-2 gap-2 mb-2">
                     <button onclick="window.exportData()" class="bg-gray-100 text-gray-600 py-3 rounded-xl font-bold text-[10px] uppercase hover:bg-gray-200 transition">Esporta JSON</button>
                     <label class="bg-gray-100 text-gray-600 py-3 rounded-xl font-bold text-[10px] uppercase hover:bg-gray-200 text-center cursor-pointer transition">
                         Importa JSON
                         <input type="file" id="importFile" class="hidden" onchange="window.importData(event)" accept=".json">
                     </label>
                 </div>
+                <button onclick="window.exportCSV()" class="w-full bg-[#107c41] text-white flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-[10px] uppercase hover:bg-green-800 transition shadow-sm">
+                    <span>📊 Scarica in Excel (.CSV)</span>
+                </button>
             </div>
 
             <div class="card p-5 shadow-sm">
@@ -163,5 +173,13 @@
     <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js"></script>
     
     <script src="script.js"></script>
+    <script>
+        // Registrazione Service Worker per uso App Nativa e Offline (solo su Server o Dominio Valido)
+        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW setup fallito', err));
+            });
+        }
+    </script>
 </body>
 </html>
