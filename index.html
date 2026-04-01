@@ -153,46 +153,49 @@
 
             <div class="card p-5 space-y-3 shadow-sm mb-4">
                 <h3 class="font-bold text-gray-700 text-[10px] uppercase tracking-wider">🎯 Obiettivi e Limiti (Plafond Mensile)</h3>
-                <div class="flex gap-2 mb-2">
-                    <select id="budget-cat-select" class="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-bold max-w-[50%]"></select>
-                    <input type="number" id="budget-limit-val" placeholder="Max €..." class="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-full font-bold">
-                    <button onclick="window.setBudgetLimit()" class="bg-orange-500 text-white px-3 text-xs rounded-lg font-bold hover:bg-orange-600 transition shadow-sm">Imposta</button>
+                <div class="flex flex-col gap-2 mb-2">
+                    <select id="budget-cat-select" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-bold"></select>
+                    <div class="flex gap-2">
+                        <input type="number" id="budget-limit-val" placeholder="Max €..." class="flex-1 min-w-0 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold">
+                        <button onclick="window.setBudgetLimit()" class="bg-orange-500 text-white px-4 rounded-lg text-sm font-bold hover:bg-orange-600 transition shadow-sm">Imposta</button>
+                    </div>
                 </div>
                 <div id="budget-limits-list" class="space-y-2 max-h-40 overflow-y-auto mt-2"></div>
             </div>
 
             <div class="card p-5 space-y-3 shadow-sm mb-4 border-t-4 border-slate-700">
                 <h3 class="font-bold text-gray-700 text-[10px] uppercase tracking-wider">🔄 Abbonamenti e Rate Fisse</h3>
-                <div class="flex gap-2">
-                    <select id="rec-tipo" onchange="window.updateRecCategorySelect()" class="p-2 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 max-w-[35%]">
+                <div class="flex gap-2 w-full">
+                    <select id="rec-tipo" onchange="window.updateRecCategorySelect()" class="flex-[2] min-w-0 p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600">
                         <option value="uscita">Uscita</option>
                         <option value="entrata">Entrata</option>
                     </select>
-                    <select id="rec-cat" class="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600"></select>
+                    <select id="rec-cat" class="flex-[3] min-w-0 p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600"></select>
                 </div>
-                <div class="flex gap-2">
-                    <input type="text" id="rec-desc" placeholder="Es. Netflix o Spotify" class="flex-[3] p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium">
-                    <input type="number" id="rec-importo" placeholder="€..." class="flex-[2] p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold">
+                <div class="flex gap-2 w-full">
+                    <input type="text" id="rec-desc" placeholder="Descrizione (es. Netflix o Spotify)" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium">
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Giorno (1-31):</span>
-                    <input type="number" id="rec-giorno" placeholder="01" min="1" max="31" class="w-12 p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-black text-center">
-                    <button onclick="window.addRecurringExpense()" class="flex-1 bg-slate-700 text-white px-2 py-2 text-[10px] uppercase rounded-lg font-black hover:bg-slate-800 transition shadow-sm">+ Attiva</button>
+                <div class="flex gap-2 items-center w-full">
+                    <input type="number" id="rec-importo" placeholder="€..." class="flex-[2] min-w-0 p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold">
+                    <input type="number" id="rec-giorno" placeholder="Gg (1-31)" min="1" max="31" class="flex-[2] min-w-0 p-2 bg-gray-50 border border-gray-200 rounded-lg text-[10px] sm:text-xs font-black text-center">
+                    <button onclick="window.addRecurringExpense()" class="flex-[3] bg-slate-700 text-white p-2 text-[10px] sm:text-xs uppercase rounded-lg font-black hover:bg-slate-800 transition shadow-sm">+ Attiva</button>
                 </div>
-                <div id="recurring-list" class="space-y-2 max-h-40 overflow-y-auto mt-2"></div>
+                <div id="recurring-list" class="space-y-2 max-h-40 overflow-y-auto mt-2 w-full"></div>
             </div>
 
             <div class="card p-5 shadow-sm">
                 <h3 class="font-bold text-gray-700 text-[10px] mb-3 uppercase tracking-wider">📂 Gestisci Categorie</h3>
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="nuova-cat-nome" placeholder="Nuova categoria..." class="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
-                    <select id="nuova-cat-tipo" class="p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
-                        <option value="uscita">Uscita</option>
-                        <option value="entrata">Entrata</option>
-                    </select>
-                    <button onclick="window.addCustomCategory()" class="bg-slate-700 text-white px-4 rounded-lg font-bold hover:bg-slate-800 transition">+</button>
+                <div class="flex flex-col gap-2 mb-4">
+                    <input type="text" id="nuova-cat-nome" placeholder="Nuova categoria..." class="w-full min-w-0 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+                    <div class="flex gap-2">
+                        <select id="nuova-cat-tipo" class="flex-[2] min-w-0 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+                            <option value="uscita">Uscita</option>
+                            <option value="entrata">Entrata</option>
+                        </select>
+                        <button onclick="window.addCustomCategory()" class="flex-[1] bg-slate-700 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition">Aggiungi</button>
+                    </div>
                 </div>
-                <div id="categories-manage-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                <div id="categories-manage-list" class="space-y-2 max-h-40 overflow-y-auto w-full"></div>
             </div>
             
         </main>
