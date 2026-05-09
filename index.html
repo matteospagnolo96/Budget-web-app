@@ -37,47 +37,62 @@
     </div>
 
     <!-- Web App Principale Gated (Nascosta all'avvio) -->
-    <div id="app-container" class="w-full max-w-md space-y-4 hidden-app">
+    <div id="app-container" class="w-full max-w-md lg:max-w-5xl mx-auto space-y-4 hidden-app">
         
-        <header class="space-y-3">
-            <div class="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-sm">
+        <header class="w-full max-w-md mx-auto space-y-3 pb-0">
+            <div id="tab-buttons" class="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-sm">
                 <button onclick="window.switchTab('home')" id="tab-btn-home" class="btn-tab active flex-[2] py-2 rounded-xl font-bold text-sm transition text-gray-500">🏠 Home</button>
+                <button onclick="window.switchTab('pivot')" id="tab-btn-pivot" class="btn-tab hidden lg:block flex-[2] py-2 rounded-xl font-bold text-sm text-gray-500 transition">📈 Pivot</button>
                 <button onclick="window.switchTab('stats')" id="tab-btn-stats" class="btn-tab flex-[2] py-2 rounded-xl font-bold text-sm text-gray-500 transition">📊 Stats</button>
                 <button onclick="window.switchTab('settings')" id="tab-btn-settings" class="btn-tab flex-1 py-2 rounded-xl font-bold text-sm text-gray-500 transition">⚙️</button>
             </div>
-
-            <div class="card p-3 flex items-center justify-between">
-                <button onclick="window.navigate(-1)" class="p-2 text-gray-600 font-bold hover:text-orange-500">❮</button>
-                <div class="text-center">
-                    <h2 id="current-period-label" class="text-sm font-black uppercase tracking-tighter text-gray-800"></h2>
-                    <div class="flex gap-2 justify-center mt-1 text-[10px] font-bold">
-                        <button onclick="window.changeView('mensile')" id="v-m" class="text-gray-800">MENSILE</button>
-                        <span class="text-gray-300">|</span>
-                        <button onclick="window.changeView('annuale')" id="v-a" class="text-gray-400">ANNUALE</button>
-                    </div>
-                </div>
-                <button onclick="window.navigate(1)" class="p-2 text-gray-600 font-bold hover:text-orange-500">❯</button>
-            </div>
         </header>
 
+        <!-- Selettore Periodo Globale -->
+        <div id="global-period-selector" class="w-full max-w-md mx-auto card p-3 flex items-center justify-between">
+            <button onclick="window.navigate(-1)" class="p-2 text-gray-600 font-bold hover:text-orange-500">❮</button>
+            <div class="text-center">
+                <h2 id="current-period-label" class="text-sm font-black uppercase tracking-tighter text-gray-800"></h2>
+                <div class="flex gap-2 justify-center mt-1 text-[10px] font-bold">
+                    <button onclick="window.changeView('mensile')" id="v-m" class="text-gray-800">MENSILE</button>
+                    <span class="text-gray-300">|</span>
+                    <button onclick="window.changeView('annuale')" id="v-a" class="text-gray-400">ANNUALE</button>
+                </div>
+            </div>
+            <button onclick="window.navigate(1)" class="p-2 text-gray-600 font-bold hover:text-orange-500">❯</button>
+        </div>
+
         <main id="tab-home" class="tab-content active-tab space-y-4">
-            <div class="grid grid-cols-2 gap-3">
-                <div class="card p-3 border-l-4 border-green-500">
-                    <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Entrate</p>
-                    <h2 id="tot-entrate" class="text-base font-black text-green-600">€ 0.00</h2>
-                </div>
-                <div class="card p-3 border-l-4 border-red-500">
-                    <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Uscite</p>
-                    <h2 id="tot-uscite" class="text-base font-black text-red-600">€ 0.00</h2>
-                </div>
+
+            <div id="portafoglio-widget" class="hidden lg:block card p-6 bg-slate-800 text-white text-center shadow-lg border-none relative overflow-hidden rounded-2xl w-full">
+                <p class="text-xs font-bold uppercase opacity-80 tracking-widest text-slate-300">Patrimonio (Risparmio Totale)</p>
+                <h2 id="tot-portafoglio" class="text-3xl font-black mt-1">€ 0.00</h2>
             </div>
 
-            <div class="card p-4 bg-orange-500 text-white text-center shadow-lg shadow-orange-100 border-none relative overflow-hidden">
-                <p class="text-xs font-bold uppercase opacity-90 tracking-widest">Risparmi del Periodo</p>
-                <h2 id="tot-risparmi" class="text-2xl font-black">€ 0.00</h2>
-            </div>
+            <!-- Center Column Desktop (KPI o Mobile Top Content) posizionati sotto il portafoglio -->
+            <div id="kpi-wrapper" class="space-y-4 w-full">
+                <div id="kpi-entrate-uscite" class="grid grid-cols-2 gap-3">
+                    <div class="card p-3 border-l-4 border-green-500">
+                        <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Entrate</p>
+                        <h2 id="tot-entrate" class="text-base font-black text-green-600">€ 0.00</h2>
+                    </div>
+                    <div class="card p-3 border-l-4 border-red-500">
+                        <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Uscite</p>
+                        <h2 id="tot-uscite" class="text-base font-black text-red-600">€ 0.00</h2>
+                    </div>
+                </div>
 
-            <div class="card p-5 space-y-3 relative shadow-sm">
+                <div id="kpi-risparmi" class="card p-4 bg-orange-500 text-white flex flex-col justify-center text-center shadow-lg shadow-orange-100 border-none relative overflow-hidden">
+                    <p class="text-xs font-bold uppercase opacity-90 tracking-widest">Risparmi del Periodo</p>
+                    <h2 id="tot-risparmi" class="text-2xl font-black mt-1">€ 0.00</h2>
+                </div>
+            </div> <!-- Chiude kpi-wrapper -->
+
+            <div id="home-desktop-layout" class="flex flex-col gap-4 w-full">
+
+                <!-- Right Column Desktop (Azioni Rapide che ora scivolano Sotto) -->
+                <div id="right-col-wrapper" class="space-y-4 w-full">
+            <div id="form-add-tx" class="card p-5 space-y-3 relative shadow-sm">
                 <div class="flex justify-between items-center">
                     <h3 id="form-title" class="font-bold text-gray-700 text-xs uppercase">Aggiungi Movimento</h3>
                     <div id="btn-container-edit" class="hidden flex gap-1">
@@ -86,33 +101,61 @@
                     </div>
                 </div>
                 <input type="hidden" id="edit-id">
-                <div class="flex gap-2">
-                    <select id="tipo" onchange="window.updateCategorySelect()" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                <div class="grid grid-cols-2 lg:flex lg:flex-row lg:items-center gap-2 w-full box-border">
+                    <select id="tipo" onchange="window.updateCategorySelect()" class="col-span-1 min-w-0 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm box-border lg:w-32 lg:order-1 font-medium">
                         <option value="uscita">Spesa (-)</option>
                         <option value="entrata">Entrata (+)</option>
                     </select>
-                    <input type="number" id="importo" inputmode="decimal" placeholder="0.00" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold w-full">
+                    
+                    <input type="number" id="importo" inputmode="decimal" placeholder="0.00" class="col-span-1 min-w-0 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold box-border lg:w-36 lg:order-3">
+                    
+                    <select id="categoria-select" class="col-span-2 min-w-0 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm box-border lg:w-48 lg:order-2 font-medium"></select>
+                    
+                    <input type="text" id="descrizione" placeholder="Descrizione (es. Pizza)" class="col-span-2 min-w-0 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm box-border lg:flex-1 lg:order-4 font-medium">
+                    
+                    <input type="date" id="data-input" class="col-span-2 min-w-0 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm box-border lg:w-40 lg:order-5 font-medium">
+                    
+                    <button id="btn-save" onclick="window.saveTransaction()" class="col-span-2 min-w-0 bg-slate-700 text-white py-4 lg:py-3 px-6 rounded-xl font-bold hover:bg-slate-800 transition shadow-md whitespace-nowrap box-border lg:w-auto lg:order-6">Registra</button>
                 </div>
-                <select id="categoria-select" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm"></select>
-                <input type="text" id="descrizione" placeholder="Descrizione (es. Pizza)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
-                <input type="date" id="data-input" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
-                <button id="btn-save" onclick="window.saveTransaction()" class="w-full bg-slate-700 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition shadow-md">Registra</button>
             </div>
 
-            <div class="space-y-2">
+            <div id="tx-history" class="space-y-2">
                 <div class="flex items-center justify-between ml-2 mb-2">
                     <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Movimenti Recenti</h3>
                 </div>
-                <!-- Motore di Ricerca -->
-                <input type="text" id="searchTerm" oninput="render()" placeholder="🔍 Cerca per categoria, descrizione..." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm mb-2 font-medium">
+                <!-- Filtri Avanzati -->
+                <div id="advanced-filters" class="card p-3 mb-2 space-y-2 bg-white shadow-sm border-gray-200">
+                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-2">
+                        <select id="search-tipo" onchange="window.updateSearchCategory(); render()" class="p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs">
+                            <option value="">Tutti i tipi</option>
+                            <option value="entrata">Entrate</option>
+                            <option value="uscita">Uscite</option>
+                        </select>
+                        <select id="search-cat" onchange="render()" class="p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs">
+                            <option value="">Tutte le categorie</option>
+                        </select>
+                        <input type="number" id="search-min" oninput="render()" placeholder="Min €" class="p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold w-full">
+                        <input type="number" id="search-max" oninput="render()" placeholder="Max €" class="p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold w-full">
+                        <button onclick="window.resetFilters()" class="col-span-2 lg:col-span-1 bg-gray-200 text-gray-600 p-2 rounded-lg text-xs font-bold hover:bg-gray-300 transition">Reset Filtri</button>
+                    </div>
+                    <input type="text" id="searchTerm" oninput="render()" placeholder="🔍 Cerca nella descrizione..." class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium">
+                </div>
                 <div id="search-summary" class="hidden text-[11px] font-bold text-gray-500 bg-gray-100 px-3 py-2 rounded-lg mb-2"></div>
                 
                 <div id="lista-transazioni" class="scroll-container space-y-2"></div>
             </div>
+            </div> <!-- Chiude right-col-wrapper -->
+            
+            </div> <!-- Chiude home-desktop-layout -->
+        </main>
+
+        <!-- Tab Pivot: solo desktop, contiene le 4 tabelle pivot -->
+        <main id="tab-pivot" class="tab-content">
+            <div id="desktop-tables-container" class="flex flex-col gap-6 w-full"></div>
         </main>
 
         <main id="tab-stats" class="tab-content space-y-4">
-            <div class="card p-5">
+            <div id="chart-container" class="card p-5 h-full flex flex-col">
                 <h3 class="text-center font-bold text-gray-600 mb-4 uppercase text-[10px] tracking-widest">Distribuzione Spese</h3>
                 <div class="chart-wrapper">
                     <canvas id="expenseChart"></canvas>

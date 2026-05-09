@@ -51,6 +51,17 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =
     }
 });
 
+// Listener per intercettare il passaggio da Desktop a Mobile e viceversa
+let isDesktopState = window.matchMedia('(min-width: 1024px)').matches;
+window.addEventListener('resize', () => {
+    if (chart) chart.resize();
+    const newDesktopState = window.matchMedia('(min-width: 1024px)').matches;
+    if (isDesktopState !== newDesktopState) {
+        isDesktopState = newDesktopState;
+        render(); // Forza ricalcolo UI se saltiamo il breakpoint
+    }
+});
+
 // Funzione Notifiche
 function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
@@ -329,6 +340,22 @@ window.switchTab = function(tab) {
         el.classList.add('text-gray-500');
     });
     
+    const appContainer = document.getElementById('app-container');
+    appContainer.classList.remove('max-w-md', 'max-w-screen-2xl', 'lg:max-w-5xl');
+    
+    if (tab === 'pivot') {
+        appContainer.classList.add('max-w-screen-2xl');
+    } else if (tab === 'home') {
+        appContainer.classList.add('max-w-md', 'lg:max-w-5xl');
+    } else {
+        appContainer.classList.add('max-w-md');
+    }
+    
+    const periodSelector = document.getElementById('global-period-selector');
+    if (periodSelector) {
+        periodSelector.style.display = (tab === 'settings') ? 'none' : 'flex';
+    }
+    
     document.getElementById('tab-' + tab).classList.add('active-tab');
     const btn = document.getElementById('tab-btn-' + tab);
     btn.classList.add('active');
@@ -427,6 +454,38 @@ window.resetForm = function() {
     document.getElementById('btn-container-edit').classList.add('hidden');
 };
 
+window.updateSearchCategory = function() {
+    const tipo = document.getElementById('search-tipo')?.value || '';
+    const select = document.getElementById('search-cat');
+    if (!select) return;
+    
+    const currentVal = select.value;
+    let options = [];
+    
+    if (tipo === '') {
+        options = [...(categorie['uscita'] || []), ...(categorie['entrata'] || [])];
+        options = [...new Set(options)];
+    } else {
+        options = [...(categorie[tipo] || [])];
+    }
+    
+    select.innerHTML = '<option value="">Tutte le categorie</option>' + options.map(c => `<option value="${c}">${c}</option>`).join('');
+    
+    if (options.includes(currentVal)) {
+        select.value = currentVal;
+    }
+};
+
+window.resetFilters = function() {
+    if(document.getElementById('search-tipo')) document.getElementById('search-tipo').value = '';
+    if(document.getElementById('search-cat')) document.getElementById('search-cat').value = '';
+    if(document.getElementById('search-min')) document.getElementById('search-min').value = '';
+    if(document.getElementById('search-max')) document.getElementById('search-max').value = '';
+    if(document.getElementById('searchTerm')) document.getElementById('searchTerm').value = '';
+    window.updateSearchCategory();
+    render();
+};
+
 window.deleteCategory = function(tipo, index) {
     if(confirm("Eliminare questa categoria?")) { 
         categorie[tipo].splice(index, 1); 
@@ -465,9 +524,13 @@ window.changeView = function(v) {
 };
 
 function render() {
+    const periodText = currentDate.toLocaleDateString('it-IT', viewType === 'mensile' ? {month:'long', year:'numeric'} : {year:'numeric'});
     const label = document.getElementById('current-period-label');
-    label.innerText = currentDate.toLocaleDateString('it-IT', viewType === 'mensile' ? {month:'long', year:'numeric'} : {year:'numeric'});
+    if (label) label.innerText = periodText;
+    
     window.updateCategorySelect();
+    window.updateSearchCategory();
+
     
     const budgetSelect = document.getElementById('budget-cat-select');
     if(budgetSelect) {
@@ -524,13 +587,19 @@ function render() {
     });
 
     // 2. Dati della Ricerca (Per la Lista in basso e il Box Trovati)
-    const q = (document.getElementById('searchTerm')?.value || '').toLowerCase();
+    const qDesc = (document.getElementById('searchTerm')?.value || '').toLowerCase();
+    const searchTipo = document.getElementById('search-tipo')?.value || '';
+    const searchCat = document.getElementById('search-cat')?.value || '';
+    const searchMin = parseFloat(document.getElementById('search-min')?.value);
+    const searchMax = parseFloat(document.getElementById('search-max')?.value);
+
     const filtrati_ricerca = filtrati_periodo.filter(t => {
-        if (!q) return true;
-        
-        return t.categoria.toLowerCase().includes(q) || 
-               (t.descrizione || '').toLowerCase().includes(q) || 
-               t.importo.toString().includes(q);
+        if (searchTipo && t.tipo !== searchTipo) return false;
+        if (searchCat && t.categoria !== searchCat) return false;
+        if (!isNaN(searchMin) && t.importo < searchMin) return false;
+        if (!isNaN(searchMax) && t.importo > searchMax) return false;
+        if (qDesc && !(t.descrizione || '').toLowerCase().includes(qDesc)) return false;
+        return true;
     });
 
     let ent = 0, usc = 0;
@@ -550,7 +619,8 @@ function render() {
     // Aggiornamento Box Sommario Ricerca usa SOLO i dati filtrati_ricerca
     const searchSummary = document.getElementById('search-summary');
     if (searchSummary) {
-        if (q) {
+        const isFilterActive = qDesc || searchTipo || searchCat || !isNaN(searchMin) || !isNaN(searchMax);
+        if (isFilterActive) {
             let searchedSum = 0;
             filtrati_ricerca.forEach(t => {
                 searchedSum += t.tipo === 'uscita' ? -t.importo : t.importo;
@@ -568,11 +638,9 @@ function render() {
 
     // Costruzione Lista HTML solo per i risultati di ricerca
     filtrati_ricerca.sort((a,b) => new Date(b.data) - new Date(a.data)).forEach(t => {
-        
-        let colorClass = t.tipo === 'entrata' ? 'border-green-500' : 'border-red-500';
         let amountColorClass = t.tipo === 'entrata' ? 'text-green-600' : 'text-red-600';
+        let colorClass = t.tipo === 'entrata' ? 'border-green-500' : 'border-red-500';
         let descHTML = t.descrizione ? `<p class="text-[10px] text-gray-500 italic mt-0.5">${t.descrizione}</p>` : '';
-        
         htmlContent += `
         <div onclick="window.editTrans(${t.id})" class="transazione-item card p-3 flex justify-between items-center text-sm cursor-pointer hover:bg-gray-50 border-l-4 ${colorClass}">
             <div class="flex-1 pr-4 pointer-events-none">
@@ -590,6 +658,198 @@ function render() {
     document.getElementById('tot-uscite').innerText = `€ ${usc.toFixed(2)}`;
     document.getElementById('tot-risparmi').innerText = `€ ${(ent - usc).toFixed(2)}`;
     
+    // ----------- NUOVE TABELLE PIVOT DESKTOP -------------
+    // 1. Calcolo Portafoglio Storico Cumulativo
+    let storicoE = 0, storicoU = 0;
+    transazioni.forEach(t => {
+        if(t.tipo === 'entrata') storicoE += t.importo;
+        else storicoU += t.importo;
+    });
+    const portEl = document.getElementById('tot-portafoglio');
+    if (portEl) portEl.innerText = `€ ${(storicoE - storicoU).toFixed(2)}`;
+
+    // 2. Generazione Tabelle (sempre popolate, il container vive nella tab Pivot)
+    const tableContainer = document.getElementById('desktop-tables-container');
+    if (tableContainer) {
+        const targetYear = currentDate.getFullYear();
+        
+        // Inizializza dati mensili fissi per i 12 mesi
+        const monthlyData = {};
+        for(let m=1; m<=12; m++) {
+            monthlyData[m] = { entrate: 0, uscite: 0, catE: {}, catU: {} };
+        }
+        
+        const categorieE = new Set();
+        const categorieU = new Set();
+        
+        // Riempi aggregando per mese dell'anno Target
+        transazioni.forEach(t => {
+            const d = new Date(t.data);
+            if (d.getFullYear() === targetYear) {
+                const rMonth = d.getMonth() + 1; // 1 to 12
+                
+                if (t.tipo === 'entrata') {
+                    monthlyData[rMonth].entrate += t.importo;
+                    monthlyData[rMonth].catE[t.categoria] = (monthlyData[rMonth].catE[t.categoria] || 0) + t.importo;
+                    categorieE.add(t.categoria);
+                } else {
+                    monthlyData[rMonth].uscite += t.importo;
+                    monthlyData[rMonth].catU[t.categoria] = (monthlyData[rMonth].catU[t.categoria] || 0) + t.importo;
+                    categorieU.add(t.categoria);
+                }
+            }
+        });
+
+        const mesiLabels = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+        
+        let pvtHTML = '';
+
+        // -------------------------------------------------------
+        // Tabella 0: Riepilogo Storico per Anno (PRIMA delle pivot mensili)
+        // -------------------------------------------------------
+        const anniSet = new Set();
+        transazioni.forEach(t => anniSet.add(new Date(t.data).getFullYear()));
+        const anniArray = Array.from(anniSet).sort();
+
+        if (anniArray.length > 0) {
+            // Aggrega entrate/uscite per anno (tutti i movimenti, nessun filtro)
+            const yearlyData = {};
+            anniArray.forEach(y => yearlyData[y] = { entrate: 0, uscite: 0 });
+            transazioni.forEach(t => {
+                const y = new Date(t.data).getFullYear();
+                if (yearlyData[y]) {
+                    if (t.tipo === 'entrata') yearlyData[y].entrate += t.importo;
+                    else yearlyData[y].uscite += t.importo;
+                }
+            });
+
+            pvtHTML += `<div class="desktop-table-wrapper"><div class="desktop-title-row">📅 Riepilogo Storico per Anno</div><div style="padding:0; overflow-x: auto;"><table class="desktop-table"><thead><tr><th>Parametro</th>`;
+            anniArray.forEach(y => pvtHTML += `<th>${y}</th>`);
+            pvtHTML += `<th class="border-l border-gray-200">Totale</th></tr></thead><tbody>`;
+
+            // RIGA ENTRATE
+            pvtHTML += `<tr><td class="font-bold">Entrate</td>`;
+            let gtE = 0;
+            anniArray.forEach(y => { const v = yearlyData[y].entrate; gtE += v; pvtHTML += `<td class="text-green-600">${v > 0 ? '€'+v.toFixed(2) : '-'}</td>`; });
+            pvtHTML += `<td class="text-green-600 font-bold border-l border-gray-100">€${gtE.toFixed(2)}</td></tr>`;
+
+            // RIGA USCITE
+            pvtHTML += `<tr><td class="font-bold">Uscite</td>`;
+            let gtU = 0;
+            anniArray.forEach(y => { const v = yearlyData[y].uscite; gtU += v; pvtHTML += `<td class="text-red-600">${v > 0 ? '€'+v.toFixed(2) : '-'}</td>`; });
+            pvtHTML += `<td class="text-red-600 font-bold border-l border-gray-100">€${gtU.toFixed(2)}</td></tr>`;
+
+            // RIGA RISPARMIO
+            pvtHTML += `<tr><td class="font-bold">Risparmio</td>`;
+            const gtRisp = gtE - gtU;
+            anniArray.forEach(y => { const val = yearlyData[y].entrate - yearlyData[y].uscite; pvtHTML += `<td style="color:${val >= 0 ? '#f97316' : '#ef4444'}" class="font-semibold">${val !== 0 ? '€'+val.toFixed(2) : '-'}</td>`; });
+            pvtHTML += `<td style="color:${gtRisp >= 0 ? '#f97316' : '#ef4444'}" class="font-bold border-l border-gray-100">€${gtRisp.toFixed(2)}</td></tr>`;
+
+            // RIGA TASSO %
+            pvtHTML += `<tr><td class="font-bold text-[11px] text-gray-500">Tasso %</td>`;
+            anniArray.forEach(y => {
+                const e = yearlyData[y].entrate; const u = yearlyData[y].uscite; const val = e - u;
+                const tasso = e > 0 ? ((val / e) * 100).toFixed(1) : (u > 0 ? '-100.0' : '-');
+                pvtHTML += `<td class="font-bold text-gray-600">${tasso !== '-' ? tasso + '%' : '-'}</td>`;
+            });
+            const gtTasso = gtE > 0 ? ((gtRisp / gtE) * 100).toFixed(1) : (gtU > 0 ? '-100.0' : '-');
+            pvtHTML += `<td class="font-extrabold text-gray-700 border-l border-gray-100">${gtTasso !== '-' ? gtTasso + '%' : '-'}</td></tr>`;
+
+            // RIGA PATRIMONIO
+            pvtHTML += `<tr><td class="font-bold">Patrimonio</td>`;
+            let cumPatrimonio = 0;
+            anniArray.forEach(y => {
+                cumPatrimonio += (yearlyData[y].entrate - yearlyData[y].uscite);
+                pvtHTML += `<td class="text-gray-900 font-bold">€${cumPatrimonio.toFixed(2)}</td>`;
+            });
+            pvtHTML += `<td class="text-gray-900 font-black border-l border-gray-100">€${cumPatrimonio.toFixed(2)}</td></tr>`;
+
+            pvtHTML += `</tbody></table></div></div>`;
+        }
+        
+        // Tabella 1: Overview mensile anno selezionato
+        pvtHTML += `<div class="desktop-table-wrapper"><div class="desktop-title-row">Riepilogo Assoluto - ${targetYear}</div><div style="padding:0; overflow-x: auto;"><table class="desktop-table"><thead><tr><th>Parametro</th>`;
+        mesiLabels.forEach(m => pvtHTML += `<th>${m}</th>`);
+        pvtHTML += `<th class="border-l border-gray-200">Totale</th></tr></thead><tbody>`;
+        
+        // RIGA ENTRATE
+        pvtHTML += `<tr><td class="font-bold">Entrate</td>`;
+        let sumE = 0;
+        for(let m=1; m<=12; m++) { const v = monthlyData[m].entrate; sumE+=v; pvtHTML += `<td class="text-green-600">${v>0?'€'+v.toFixed(2):'-'}</td>`; }
+        pvtHTML += `<td class="text-green-600 font-bold border-l border-gray-100 dark:border-slate-700">€${sumE.toFixed(2)}</td></tr>`;
+        
+        // RIGA USCITE
+        pvtHTML += `<tr><td class="font-bold">Uscite</td>`;
+        let sumU = 0;
+        for(let m=1; m<=12; m++) { const v = monthlyData[m].uscite; sumU+=v; pvtHTML += `<td class="text-red-600">${v>0?'€'+v.toFixed(2):'-'}</td>`; }
+        pvtHTML += `<td class="text-red-600 font-bold border-l border-gray-100 dark:border-slate-700">€${sumU.toFixed(2)}</td></tr>`;
+        
+        // RIGA RISPARMIO
+        pvtHTML += `<tr><td class="font-bold">Risparmio</td>`;
+        for(let m=1; m<=12; m++) { 
+            const e = monthlyData[m].entrate; const u = monthlyData[m].uscite; const val = e-u;
+            pvtHTML += `<td style="color:${val>=0?'#f97316':'#ef4444'}" class="font-semibold">${val!==0?'€'+val.toFixed(2):'-'}</td>`; 
+        }
+        const totRisp = sumE-sumU;
+        pvtHTML += `<td style="color:${totRisp>=0?'#f97316':'#ef4444'}" class="font-bold border-l border-gray-100">€${totRisp.toFixed(2)}</td></tr>`;
+        
+        // RIGA TASSO DI RISPARMIO
+        pvtHTML += `<tr><td class="font-bold text-[11px] text-gray-500">Tasso %</td>`;
+        for(let m=1; m<=12; m++) { 
+            const e = monthlyData[m].entrate; const u = monthlyData[m].uscite; const val = e-u;
+            const tasso = e > 0 ? ((val/e)*100).toFixed(1) : (u>0 ? '-100.0' : '-');
+            pvtHTML += `<td class="font-bold text-gray-600">${tasso!=='-'?tasso+'%':'-'}</td>`; 
+        }
+        const totTasso = sumE > 0 ? ((totRisp/sumE)*100).toFixed(1) : (sumU>0 ? '-100.0' : '-');
+        pvtHTML += `<td class="font-extrabold text-gray-700 border-l border-gray-100">${totTasso!=='-'?totTasso+'%':'-'}</td></tr>`;
+        pvtHTML += `</tbody></table></div></div>`;
+        
+        // Tabella 2: Entrate per Categoria
+        const catEArray = Array.from(categorieE).sort();
+        if (catEArray.length > 0) {
+            pvtHTML += `<div class="desktop-table-wrapper"><div class="desktop-title-row">Dettaglio Entrate - ${targetYear}</div><div style="padding:0; overflow-x: auto;"><table class="desktop-table"><thead><tr><th>Categoria</th>`;
+            mesiLabels.forEach(m => pvtHTML += `<th>${m}</th>`);
+            pvtHTML += `<th class="border-l border-gray-200">Totale</th></tr></thead><tbody>`;
+            catEArray.forEach(cat => {
+                pvtHTML += `<tr><td class="font-bold">${cat}</td>`;
+                let sumCat = 0;
+                for(let m=1; m<=12; m++) { 
+                    const v = monthlyData[m].catE[cat] || 0; 
+                    sumCat += v; 
+                    pvtHTML += `<td class="text-green-600">${v > 0 ? '€'+v.toFixed(2) : '-'}</td>`; 
+                }
+                pvtHTML += `<td class="text-green-600 font-bold border-l border-gray-100 dark:border-slate-700">€${sumCat.toFixed(2)}</td></tr>`;
+            });
+            pvtHTML += `</tbody></table></div></div>`;
+        }
+
+        // Tabella 3: Uscite per Categoria
+        const catUArray = Array.from(categorieU).sort();
+        if (catUArray.length > 0) {
+            pvtHTML += `<div class="desktop-table-wrapper"><div class="desktop-title-row">Dettaglio Spese - ${targetYear}</div><div style="padding:0; overflow-x: auto;"><table class="desktop-table"><thead><tr><th>Categoria</th>`;
+            mesiLabels.forEach(m => pvtHTML += `<th>${m}</th>`);
+            pvtHTML += `<th class="border-l border-gray-200">Totale</th></tr></thead><tbody>`;
+            catUArray.forEach(cat => {
+                pvtHTML += `<tr><td class="font-bold">${cat}</td>`;
+                let sumCat = 0;
+                for(let m=1; m<=12; m++) { 
+                    const v = monthlyData[m].catU[cat] || 0; 
+                    sumCat += v; 
+                    pvtHTML += `<td class="text-red-600">${v > 0 ? '€'+v.toFixed(2) : '-'}</td>`; 
+                }
+                pvtHTML += `<td class="text-red-600 font-bold border-l border-gray-100 dark:border-slate-700">€${sumCat.toFixed(2)}</td></tr>`;
+            });
+            pvtHTML += `</tbody></table></div></div>`;
+        }
+        
+        if(catEArray.length === 0 && catUArray.length === 0) {
+            pvtHTML += `<div class="text-center p-10 text-gray-400 font-bold bg-white rounded-2xl border shadow-sm">Nessun movimento registrato nel ${targetYear}.</div>`;
+        }
+
+        tableContainer.innerHTML = pvtHTML;
+    }
+    // ----------- FINE NUOVE TABELLE PIVOT DESKTOP --------
+
     updateChart(stats, usc);
     renderStatsDetails(stats, usc);
 }
